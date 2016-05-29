@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Written by: https://gitlab.com/u/huuteml
 # Website: https://daulton.ca
 # Purpose: Automating the kernel emerge, eselect, compile, install, etc to save some
@@ -13,7 +13,7 @@ echo "4. pf-sources"
 echo "5. vanilla-sources"
 echo "6. zen-sources"
 echo "7. git-sources"
-read answer
+read -r answer
 if [[ $answer == "1" ]]; then
 	emerge --ask sys-kernel/gentoo-sources
 elif [[ $answer == "2" ]]; then
@@ -40,21 +40,21 @@ eselect kernel list
 
 echo
 echo "Which kernel do you want to use? Type a number: "
-read inputNumber
-eselect kernel set $inputNumber
+read -r inputNumber
+eselect kernel set "$inputNumber"
 
 echo
 echo "Do you want to copy your current kernels config to the new kernels directory? YES/NO"
-read answer
+read -r answer
 if [[ $answer == "YES" || $answer == "Yes" || $answer == "yes" ]]; then
 	modprobe configs
 	zcat /proc/config.gz > /usr/src/linux/.config
 	if [ $? -gt 0 ]; then
-		configLocation=$((find /usr/src/* -name .config | tail -n 1))
-		cp $configLocation /usr/src/linux/.config
+		configLocation=$(find /usr/src/* -name '.config' | tail -n 1)
+		cp "$configLocation" /usr/src/linux/.config
 		if [ $? -gt 0 ]; then
-			configLocation=$((find /boot/* -name config-* | tail -n 1))
-			cp $configLocation /usr/src/linux/.config
+			configLocation=$(find /boot/* -name 'config-*' | tail -n 1)
+			cp "$configLocation" /usr/src/linux/.config
 		fi
 	fi	
 fi
@@ -62,9 +62,9 @@ fi
 echo
 echo "Do you want to build using the regular method or Sakakis build kernel script?"
 echo "1 for regular, 2 for Sakakis build kernel script, and type skip to skip this"
-read answer
+read -r answer
 if [[ $answer == "1" ]]; then
-	cd /usr/src/linux
+	cd /usr/src/linux || exit
 	echo "Cleaning directory..."
 	make clean
 	echo "Launching make menuconfig..."
