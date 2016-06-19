@@ -4,6 +4,26 @@
 # Purpose: Automating the kernel emerge, eselect, compile, install, etc to save some
 # effort when installing, upgrading, or trying a new kernel.
 
+rbacStatus=$(gradm -S >/dev/null 2>&1)
+enabledMessage="The RBAC system is currently enabled."
+if [ "$(diff -q $rbacStatus $enabledMessage 2>&1)" = "" ] ; then
+	echo "Grsecurity RBAC is enabled, do you need to disable it or auth to admin? YES/NO"
+	read -r rbacAnswer
+	if [[ $rbacAnswer == "YES" || $rbacAnswer == "yes" ]]; then
+		echo "Would you like to disable it (press 1) or would you like to auth to admin (press 2)"
+		read -r answer
+		if [[ $answer == "1" ]]; then
+			gradm -D
+		elif [[ $answer == "2" ]]; then
+			gradm -a admin
+		elif [[ $answer == "skip" || $answer == "Skip" || $answer = "SKIP" ]]; then
+			echo "Skipping..."
+		else
+			echo "Please choose an option between 1-2 or type skip."
+		fi	
+	fi
+fi
+
 echo "Select the kernel you'd like to install/update. Type skip to skip this."
 echo
 echo "1. gentoo-sources"
@@ -61,7 +81,7 @@ fi
 
 echo
 echo "Do you want to build using the regular method or Sakakis build kernel script?"
-echo "1 for regular, 2 for Sakakis build kernel script, and type skip to skip this"
+echo "1 for regular, 2 for Sakakis build kernel script, 3 for genkernel and type skip to skip this"
 read -r answer
 if [[ $answer == "1" ]]; then
 	cd /usr/src/linux || exit
@@ -70,14 +90,24 @@ if [[ $answer == "1" ]]; then
 	echo "Launching make menuconfig..."
 	make menuconfig
 	echo "Starting to build kernel.. please wait..."
-	make -j 5 && make modules_install && make install
+	make -j 5
+	echo "Installing kernel..."
+	make modules_install && make install
 elif [[ $answer == "2" ]]; then
 	echo "Starting to build the kernel..."
 	buildkernel --ask --verbose
+elif [[ $answer == "3" ]]; then
+	echo "Starting to build the kernel..."
+	genkernel --install kernel
 elif [[ $answer == "skip" || $answer == "Skip" || $answer = "SKIP" ]]; then
 	echo "Skipping building the kernel..."
 else
 	echo "Please choose an option between 1-2 or type skip"
+fi
+
+if [[ $rbacAnswer == "YES" || $rbacAnswer == "yes" ]]; then
+	gradm -D
+	gradm -u admin
 fi
 
 echo "Complete!"
