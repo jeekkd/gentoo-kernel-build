@@ -95,10 +95,10 @@ This updates the .config for the current selected kernel with support for your
 systems hardware that does not have support enabled currently."
 read -r answer
 if [[ $answer == "Y" ]] || [[ $answer == "y" ]]; then  
-	emerge --autounmask-write sys-kernel/kergen
+	emerge --autounmask-write -q sys-kernel/kergen
 	if [ $? -eq 1 ]; then
         etc-update --automode -5
-		emerge --autounmask-write sys-kernel/kergen
+		emerge --autounmask-write -q sys-kernel/kergen
 	fi
 	kergen -g
 fi
@@ -108,15 +108,27 @@ echo "Do you want to build using the regular method or Sakakis build kernel scri
 echo "1 for regular, 2 for Sakakis build kernel script, 3 for genkernel and type skip to skip this"
 read -r answer
 if [[ $answer == "1" ]]; then
+	coreCount=$(cat /proc/cpuinfo | awk '/^processor/{print $3}' | tail -1)
 	cd /usr/src/linux || exit
 	echo "Cleaning directory..."
 	make clean
 	echo "Launching make menuconfig..."
 	make menuconfig
 	echo "Starting to build kernel.. please wait..."
-	make
+	make -j$coreCount
 	echo "Installing modules and the kernel..."
 	make modules_install && make install
+	if [ $? -eq 0 ]; then
+		echo "Do you also need a initramfs? Y/N"
+		read -r answer
+		if [[ $answer == "Y" ]] || [[ $answer == "y" ]]; then
+			genkernel --install initramfs
+			if [ $? -gt 0 ]; then
+				emerge -q sys-kernel/genkernel-next
+				genkernel --install initramfs
+			fi
+		fi
+	fi
 elif [[ $answer == "2" ]]; then
 	echo "Starting to build the kernel..."
 	buildkernel --ask --verbose
