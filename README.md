@@ -11,27 +11,33 @@ How to use
 > - First we must change the scripts permissions. This will make the script readable, writable, and 
 executable to root and your user:
 
+```
 sudo chmod 770 build_kernel.sh
+```
 
 > - Now you launch the script like so:
 
+```
 sudo bash build_kernel.sh
+```
 
 ----------
 
-As an extra, here is how you can add the script to be globally runnable. This is super convenient 
+Additionally, here how you can add the script to be globally runnable. This is super convenient 
 since you can merely type something such as the following and have the script run:
 
+```
 sudo build_kernel
+```
 
 Here's how we can do this:
 
 ```
-// Syntax of doing so:
+# Syntax of doing so:
 
 sudo ln <script location/script name> /usr/local/bin/<name you want to type to launch the script>
 
-// More real example:
+# More real example:
 
 sudo ln /home/<user>/build_kernel.sh /usr/local/bin/build_kernel
 

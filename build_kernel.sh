@@ -4,6 +4,20 @@
 # Purpose: Automating the kernel emerge, eselect, compile, install, etc to save some
 # effort when installing, upgrading, or trying a new kernel.
 
+# askInitramfs()
+# Function to ask the user if they also need a initramfs, if yes it will create and install the initramfs.
+askInitramfs() {
+	echo "Do you also need a initramfs? Y/N"
+	read -r answer
+	if [[ $answer == "Y" ]] || [[ $answer == "y" ]]; then
+		genkernel --install initramfs
+		if [ $? -gt 0 ]; then
+			emerge -q sys-kernel/genkernel-next
+			genkernel --install initramfs
+		fi
+	fi	
+}
+
 control_c() {
 	echo "Control-c pressed - exiting NOW"
 	exit 1
@@ -119,15 +133,7 @@ if [[ $answer == "1" ]]; then
 	echo "Installing modules and the kernel..."
 	make modules_install && make install
 	if [ $? -eq 0 ]; then
-		echo "Do you also need a initramfs? Y/N"
-		read -r answer
-		if [[ $answer == "Y" ]] || [[ $answer == "y" ]]; then
-			genkernel --install initramfs
-			if [ $? -gt 0 ]; then
-				emerge -q sys-kernel/genkernel-next
-				genkernel --install initramfs
-			fi
-		fi
+		askInitramfs
 	fi
 elif [[ $answer == "2" ]]; then
 	echo "Starting to build the kernel..."
@@ -138,6 +144,7 @@ elif [[ $answer == "3" ]]; then
 	echo "options you may need to manually configure the parameters for your usage case."
 	read -p "Press any key to continue... "
 	genkernel --install kernel
+	askInitramfs
 elif [[ $answer == "skip" || $answer == "Skip" || $answer = "SKIP" ]]; then
 	echo "Skipping building the kernel..."
 else
@@ -146,7 +153,7 @@ fi
 
 if [[ $rbacAnswer == "YES" || $rbacAnswer == "yes" ]]; then
 	gradm -u admin
-	gradm -D
+	gradm -E
 fi
 
 echo "Complete!"
