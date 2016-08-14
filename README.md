@@ -4,18 +4,29 @@ Purpose
 The purpose of this script is to for automating the kernel emerge, eselect, compile, install, etc to save some
 effort when installing, upgrading, or trying a new kernel.
 
+Pictures
+===
+
+![daulton.ca](https://daulton.ca/lib/exe/fetch.php/bash_script_pictures:build_kernel_00.png?w=700&h=861&tok=8cb493)
+![daulton.ca](https://daulton.ca/lib/exe/fetch.php/bash_script_pictures:build_kernel_01.png?w=700&h=494&tok=9a9a85)
 
 How to use
 ===
 
-> - First we must change the scripts permissions. This will make the script readable, writable, and 
-executable to root and your user:
+- Lets get the source
+
+```
+git clone https://gitlab.com/huuteml/gentoo_kernel_build.git && cd gentoo_kernel_build
+```
+
+- First we must change the scripts permissions. This will make the script readable, writable, and 
+executable to root and your user
 
 ```
 sudo chmod 770 build_kernel.sh
 ```
 
-> - Now you launch the script like so:
+- Now you launch the script like so
 
 ```
 sudo bash build_kernel.sh
