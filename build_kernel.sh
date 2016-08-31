@@ -18,6 +18,17 @@ askInitramfs() {
 	fi	
 }
 
+# confUpdate()
+# if a configuration file needs to be updated during an emerge it will update it then retry the emerge
+confUpdate() {
+	emerge --autounmask-write -q $1
+	if [ $? -eq 1 ]; then
+		etc-update --automode -5
+		emerge --autounmask-write -q $1
+	fi
+	env-update && source /etc/profile	
+}
+
 control_c() {
 	echo "Control-c pressed - exiting NOW"
 	exit 1
@@ -56,23 +67,31 @@ echo "6. zen-sources"
 echo "7. git-sources"
 read -r answer
 if [[ $answer -ge "1" ]] && [[ $answer -le "7" ]]; then
+	echo
 	emerge-webrsync
 fi
 
 if [[ $answer == "1" ]]; then
-	emerge --ask sys-kernel/gentoo-sources
+	gentooSources="sys-kernel/gentoo-sources"
+	confUpdate "$gentooSources"
 elif [[ $answer == "2" ]]; then
-	emerge --ask sys-kernel/hardened-sources
+	hardenedSources="sys-kernel/hardened-sources"
+	confUpdate "$hardenedSources"
 elif [[ $answer == "3" ]]; then
-	emerge --ask sys-kernel/ck-sources
+	ckSources="sys-kernel/ck-sources"
+	confUpdate "$ckSources"
 elif [[ $answer == "4" ]]; then
-	emerge --ask sys-kernel/pf-sources
+	pfSources="sys-kernel/pf-sources"
+	confUpdate "$pfSources"
 elif [[ $answer == "5" ]]; then
-	emerge --ask sys-kernel/vanilla-sources
+	vanillaSources="sys-kernel/vanilla-sources"
+	confUpdate "$vanillaSources"
 elif [[ $answer == "6" ]]; then
-	emerge --ask sys-kernel/zen-sources
+	zenSources="sys-kernel/zen-sources"
+	confUpdate "$zenSources"
 elif [[ $answer == "7" ]]; then
-	emerge --ask sys-kernel/git-sources
+	gitSources="sys-kernel/git-sources"
+	confUpdate "$gitSources"
 elif [[ $answer == "skip" || $answer == "Skip" || $answer = "SKIP" ]]; then
 	echo "Skipping new kernel install/update..."
 else
@@ -104,16 +123,14 @@ if [[ $answer == "YES" || $answer == "Yes" || $answer == "yes" ]]; then
 	fi	
 fi
 
+echo
 echo "Would you like to use the package 'kergen' to detect your systems hardware? Y/N
 This updates the .config for the current selected kernel with support for your
 systems hardware that does not have support enabled currently."
 read -r answer
 if [[ $answer == "Y" ]] || [[ $answer == "y" ]]; then  
-	emerge --autounmask-write -q sys-kernel/kergen
-	if [ $? -eq 1 ]; then
-        etc-update --automode -5
-		emerge --autounmask-write -q sys-kernel/kergen
-	fi
+	kergenSource="sys-kernel/kergen"
+	confUpdate "$kergenSource"
 	kergen -g
 fi
 
@@ -122,14 +139,13 @@ echo "Do you want to build using the regular method or Sakakis build kernel scri
 echo "1 for regular, 2 for Sakakis build kernel script, 3 for genkernel and type skip to skip this"
 read -r answer
 if [[ $answer == "1" ]]; then
-	coreCount=$(cat /proc/cpuinfo | awk '/^processor/{print $3}' | tail -1)
 	cd /usr/src/linux || exit
 	echo "Cleaning directory..."
 	make clean
 	echo "Launching make menuconfig..."
 	make menuconfig
 	echo "Starting to build kernel.. please wait..."
-	make -j$coreCount
+	make -j$(nproc)
 	echo "Installing modules and the kernel..."
 	make modules_install && make install
 	if [ $? -eq 0 ]; then
@@ -139,6 +155,9 @@ elif [[ $answer == "2" ]]; then
 	echo "Starting to build the kernel..."
 	buildkernel --ask --verbose
 elif [[ $answer == "3" ]]; then
+	genkernelSource="sys-kernel/genkernel-next"
+	confUpdate "$genkernelSource"
+	echo
 	echo "Starting to build the kernel..."
 	echo "Notice: This configuration for genkernel only makes and installs the kernel. For additional"
 	echo "options you may need to manually configure the parameters for your usage case."
