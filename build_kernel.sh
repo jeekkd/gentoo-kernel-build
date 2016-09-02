@@ -26,7 +26,7 @@ confUpdate() {
 		etc-update --automode -5
 		emerge --autounmask-write -q $1
 	fi
-	env-update && source /etc/profile	
+	env-update && source /etc/profile && export PS1="(chroot) $PS1"	
 }
 
 control_c() {
@@ -72,26 +72,19 @@ if [[ $answer -ge "1" ]] && [[ $answer -le "7" ]]; then
 fi
 
 if [[ $answer == "1" ]]; then
-	gentooSources="sys-kernel/gentoo-sources"
-	confUpdate "$gentooSources"
+	confUpdate "sys-kernel/gentoo-sources"
 elif [[ $answer == "2" ]]; then
-	hardenedSources="sys-kernel/hardened-sources"
-	confUpdate "$hardenedSources"
+	confUpdate "sys-kernel/hardened-sources"
 elif [[ $answer == "3" ]]; then
-	ckSources="sys-kernel/ck-sources"
-	confUpdate "$ckSources"
+	confUpdate "sys-kernel/ck-sources"
 elif [[ $answer == "4" ]]; then
-	pfSources="sys-kernel/pf-sources"
-	confUpdate "$pfSources"
+	confUpdate "sys-kernel/pf-sources"
 elif [[ $answer == "5" ]]; then
-	vanillaSources="sys-kernel/vanilla-sources"
-	confUpdate "$vanillaSources"
+	confUpdate "sys-kernel/vanilla-sources"
 elif [[ $answer == "6" ]]; then
-	zenSources="sys-kernel/zen-sources"
-	confUpdate "$zenSources"
+	confUpdate "sys-kernel/zen-sources"
 elif [[ $answer == "7" ]]; then
-	gitSources="sys-kernel/git-sources"
-	confUpdate "$gitSources"
+	confUpdate "sys-kernel/git-sources"
 elif [[ $answer == "skip" || $answer == "Skip" || $answer = "SKIP" ]]; then
 	echo "Skipping new kernel install/update..."
 else
@@ -129,8 +122,7 @@ This updates the .config for the current selected kernel with support for your
 systems hardware that does not have support enabled currently."
 read -r answer
 if [[ $answer == "Y" ]] || [[ $answer == "y" ]]; then  
-	kergenSource="sys-kernel/kergen"
-	confUpdate "$kergenSource"
+	confUpdate "sys-kernel/kergen"
 	kergen -g
 fi
 
