@@ -131,6 +131,7 @@ echo "Do you want to build using the regular method or Sakakis build kernel scri
 echo "1 for regular, 2 for Sakakis build kernel script, 3 for genkernel and type skip to skip this"
 read -r answer
 if [[ $answer == "1" ]]; then
+	confUpdate "sys-kernel/genkernel-next"
 	cd /usr/src/linux || exit
 	echo "Cleaning directory..."
 	make clean
@@ -147,8 +148,7 @@ elif [[ $answer == "2" ]]; then
 	echo "Starting to build the kernel..."
 	buildkernel --ask --verbose
 elif [[ $answer == "3" ]]; then
-	genkernelSource="sys-kernel/genkernel-next"
-	confUpdate "$genkernelSource"
+	confUpdate "sys-kernel/genkernel-next"
 	echo
 	echo "Starting to build the kernel..."
 	echo "Notice: This configuration for genkernel only makes and installs the kernel. For additional"
