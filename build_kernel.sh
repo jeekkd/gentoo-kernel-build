@@ -12,7 +12,7 @@ askInitramfs() {
 	if [[ $answer == "Y" ]] || [[ $answer == "y" ]]; then
 		genkernel --install initramfs
 		if [ $? -gt 0 ]; then
-			emerge -q sys-kernel/genkernel-next
+			confUpdate "sys-kernel/genkernel-next"
 			genkernel --install initramfs
 		fi
 	fi	
@@ -26,7 +26,7 @@ confUpdate() {
 		etc-update --automode -5
 		emerge --autounmask-write -q $1
 	fi
-	env-update && source /etc/profile && export PS1="(chroot) $PS1"	
+	env-update && source /etc/profile
 }
 
 control_c() {
@@ -45,6 +45,7 @@ if [ "$(diff -q $rbacStatus $enabledMessage 2>&1)" = "" ] ; then
 		echo "Would you like to disable it (press 1) or would you like to auth to admin (press 2)"
 		read -r answer
 		if [[ $answer == "1" ]]; then
+			gradm -a admin
 			gradm -D
 		elif [[ $answer == "2" ]]; then
 			gradm -a admin
@@ -101,19 +102,23 @@ read -r inputNumber
 eselect kernel set "$inputNumber"
 
 echo
-echo "Do you want to copy your current kernels config to the new kernels directory? YES/NO"
+echo "Do you want to copy your current kernels config to the new kernels directory? Y/N"
 read -r answer
-if [[ $answer == "YES" || $answer == "Yes" || $answer == "yes" ]]; then
+if [[ $answer == "Y" || $answer == "y" ]]; then
 	modprobe configs
 	zcat /proc/config.gz > /usr/src/linux/.config
 	if [ $? -gt 0 ]; then
-		configLocation=$(find /usr/src/* -name '.config' | tail -n 1)
+		configLocation=$(find /boot/* -name 'config-*' | tail -n 1)
 		cp "$configLocation" /usr/src/linux/.config
 		if [ $? -gt 0 ]; then
-			configLocation=$(find /boot/* -name 'config-*' | tail -n 1)
+			configLocation=$(find /usr/src/* -name '.config' | tail -n 1)
 			cp "$configLocation" /usr/src/linux/.config
-		fi
-	fi	
+			if [ $? -gt 0 ]; then
+				configLocation=$(find /usr/src/* -name '.config*' | tail -n 1)
+				cp "$configLocation" /usr/src/linux/.config
+			fi	
+		fi	
+	fi
 fi
 
 echo
@@ -132,13 +137,14 @@ echo "1 for regular, 2 for Sakakis build kernel script, 3 for genkernel and type
 read -r answer
 if [[ $answer == "1" ]]; then
 	confUpdate "sys-kernel/genkernel-next"
-	cd /usr/src/linux || exit
+	cd /usr/src/linux || echo “Error: Cannot change directory to /usr/src/linux” && exit 1
 	echo "Cleaning directory..."
 	make clean
 	echo "Launching make menuconfig..."
 	make menuconfig
 	echo "Starting to build kernel.. please wait..."
-	make -j$(nproc)
+	detectCores=$(cat /proc/cpuinfo | awk '/^processor/{print $3}' | tail -1)
+	make -j"$detectCores"
 	echo "Installing modules and the kernel..."
 	make modules_install && make install
 	if [ $? -eq 0 ]; then
@@ -152,7 +158,8 @@ elif [[ $answer == "3" ]]; then
 	echo
 	echo "Starting to build the kernel..."
 	echo "Notice: This configuration for genkernel only makes and installs the kernel. For additional"
-	echo "options you may need to manually configure the parameters for your usage case."
+	echo "options you may need to manually configure the parameters for your usage case. There is an"
+	echo "optional prompt at the end of the compiling to create an initramfs."
 	read -p "Press any key to continue... "
 	genkernel --install kernel
 	askInitramfs
@@ -168,3 +175,4 @@ if [[ $rbacAnswer == "YES" || $rbacAnswer == "yes" ]]; then
 fi
 
 echo "Complete!"
+echo "Notice: Remember to update your bootloader to use the new kernel"
