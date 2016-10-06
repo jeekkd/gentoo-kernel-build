@@ -36,27 +36,6 @@ control_c() {
 
 trap control_c SIGINT
 
-rbacStatus=$(gradm -S >/dev/null 2>&1)
-enabledMessage="The RBAC system is currently enabled."
-if [ "$(diff -q $rbacStatus $enabledMessage 2>&1)" = "" ] ; then
-	echo "Grsecurity RBAC is enabled, do you need to disable it or auth to admin? YES/NO"
-	read -r rbacAnswer
-	if [[ $rbacAnswer == "YES" || $rbacAnswer == "yes" ]]; then
-		echo "Would you like to disable it (press 1) or would you like to auth to admin (press 2)"
-		read -r answer
-		if [[ $answer == "1" ]]; then
-			gradm -a admin
-			gradm -D
-		elif [[ $answer == "2" ]]; then
-			gradm -a admin
-		elif [[ $answer == "skip" || $answer == "Skip" || $answer = "SKIP" ]]; then
-			echo "Skipping..."
-		else
-			echo "Please choose an option between 1-2 or type skip."
-		fi	
-	fi
-fi
-
 echo "Select the kernel you'd like to install/update. Type skip to skip this."
 echo
 echo "1. gentoo-sources"
@@ -105,19 +84,35 @@ echo
 echo "Do you want to copy your current kernels config to the new kernels directory? Y/N"
 read -r answer
 if [[ $answer == "Y" || $answer == "y" ]]; then
-	modprobe configs
-	zcat /proc/config.gz > /usr/src/linux/.config
-	if [ $? -gt 0 ]; then
-		configLocation=$(find /boot/* -name 'config-*' | tail -n 1)
-		cp "$configLocation" /usr/src/linux/.config
+	echo
+	echo "Do you want to search the current directory for configs named .config? Y/N"
+	echo "Note: If you want this but you do not have the config there yet, use another terminal to copy it"
+	read -r answer
+	if [[ $answer == "Y" || $answer == "y" ]]; then
+		configLocation=$(find . -maxdepth 1 -name '.config*' | tail -n 1)
+		pathRemove=${configLocation##*/}
+		cp "$pathRemove" /usr/src/linux/.config
 		if [ $? -gt 0 ]; then
-			configLocation=$(find /usr/src/* -name '.config' | tail -n 1)
+			configLocation=$(find . -maxdepth 1 -name 'config-*' | tail -n 1)
+			pathRemove=${configLocation##*/}
+			cp "$pathRemove" /usr/src/linux/.config
+		fi
+	fi
+	if [ $? -gt 0 ]; then
+		modprobe configs
+		zcat /proc/config.gz > /usr/src/linux/.config
+		if [ $? -gt 0 ]; then
+			configLocation=$(find /boot/* -name 'config-*' | tail -n 1)
 			cp "$configLocation" /usr/src/linux/.config
 			if [ $? -gt 0 ]; then
-				configLocation=$(find /usr/src/* -name '.config*' | tail -n 1)
+				configLocation=$(find /usr/src/* -name '.config' | tail -n 1)
 				cp "$configLocation" /usr/src/linux/.config
+				if [ $? -gt 0 ]; then
+					configLocation=$(find /usr/src/* -name '.config*' | tail -n 1)
+					cp "$configLocation" /usr/src/linux/.config
+				fi	
 			fi	
-		fi	
+		fi
 	fi
 fi
 
@@ -137,7 +132,7 @@ echo "1 for regular, 2 for Sakakis build kernel script, 3 for genkernel and type
 read -r answer
 if [[ $answer == "1" ]]; then
 	confUpdate "sys-kernel/genkernel-next"
-	cd /usr/src/linux || echo “Error: Cannot change directory to /usr/src/linux” && exit 1
+	cd /usr/src/linux || echo "Error: Cannot change directory to /usr/src/linux" && exit 1
 	echo "Cleaning directory..."
 	make clean
 	echo "Launching make menuconfig..."
@@ -169,10 +164,6 @@ else
 	echo "Please choose an option between 1 to 3 or type skip"
 fi
 
-if [[ $rbacAnswer == "YES" || $rbacAnswer == "yes" ]]; then
-	gradm -u admin
-	gradm -E
-fi
-
+echo
 echo "Complete!"
 echo "Notice: Remember to update your bootloader to use the new kernel"
