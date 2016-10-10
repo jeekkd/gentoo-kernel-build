@@ -8,13 +8,26 @@
 # askInitramfs()
 # Function to ask the user if they also need a initramfs, if yes it will create and install the initramfs.
 askInitramfs() {
+	echo
 	echo "Do you also need a initramfs? Y/N"
 	read -r answer
 	if [[ $answer == "Y" ]] || [[ $answer == "y" ]]; then
-		genkernel --install initramfs
-		if [ $? -gt 0 ]; then
-			confUpdate "sys-kernel/genkernel-next"
+		echo "Do you need a standard initramfs (Press 1) or with support for luks, lvm, busybox (Press 2)"
+		if [[ $answer == "1" ]]; then
 			genkernel --install initramfs
+			if [ $? -gt 0 ]; then
+				confUpdate "sys-kernel/genkernel-next"
+				genkernel --install initramfs
+			fi
+		elif [[ $answer == "2" ]]; then
+			genkernel --luks --lvm --busybox initramfs
+			if [ $? -gt 0 ]; then
+				confUpdate "sys-kernel/genkernel-next"
+				genkernel --luks --lvm --busybox initramfs
+			fi
+		else
+			echo "Error: Select an option that is the numbers 1 or two."
+			exit 1
 		fi
 	fi	
 }
@@ -101,7 +114,7 @@ if [[ $answer == "1" ]]; then
 elif [[ $answer == "2" ]]; then
 	modprobe configs
 	zcat /proc/config.gz > .config
-	mv .config /usr/src/linux
+	mv .config /usr/src/linux/
 	if [ $? -gt 0 ]; then
 		configLocation=$(find /boot/* -name 'config-*' | tail -n 1)
 		cp "$configLocation" /usr/src/linux/.config
@@ -136,13 +149,15 @@ echo "Press 1 for compiling using the regular method, 2 for Sakakis build kernel
 Note: Type skip to skip compiling the kernel."
 read -r answer
 if [[ $answer == "1" ]]; then
-	cd /usr/src/linux
-	echo "Cleaning directory..."
-	make clean
 	echo
 	echo "Would you like to use menuconfig (press 1) or gconfig (press 2)?"
 	echo "Note: Type 'skip' to skip this and go straight to compiling."
 	read -r answer
+	cd /usr/src/linux
+	echo
+	echo "Cleaning directory..."
+	make clean
+	echo
 	if [[ $answer == "1" ]]; then  
 		echo "Launching make menuconfig..."
 		make menuconfig
@@ -158,9 +173,11 @@ if [[ $answer == "1" ]]; then
 	echo
 	echo "Starting to build kernel.. please wait..."
 	coreCount=$(cat /proc/cpuinfo | awk '/^processor/{print $3}' | tail -1)
-	make -j"$coreCount"
+	make -j "$coreCount"
+	echo
 	echo "Installing modules and the kernel..."
-	make modules_install && make install
+	make modules_install
+	make install
 	if [ $? -eq 0 ]; then
 		askInitramfs
 	fi
@@ -189,15 +206,14 @@ fi
 echo
 echo "Would you like to update your grub.cfg? Y/N"
 read -r answer
-if [[ $answer == "Y" || $answer == "y" ]]; then
-	# Sometimes grub saves new config with .new extension so this is assuring that an existing config is removed
-	# and the new one is renamed after installation so it can be used properly		
+if [[ $answer == "Y" || $answer == "y" ]]; then		
 	if [ -f /boot/grub/grub.cfg ]; then
 		rm -f /boot/grub/grub.cfg
 	fi
-	
 	grub-mkconfig -o /boot/grub/grub.cfg
 	if [ $? -eq 0 ]; then
+		# Sometimes grub saves new config with .new extension so this is assuring that an existing config is 
+		# removed and the new one is renamed after installation so it can be used properly
 		if [ -f /boot/grub/grub.cfg.new ]; then
 			mv /boot/grub/grub.cfg.new /boot/grub/grub.cfg
 		fi 

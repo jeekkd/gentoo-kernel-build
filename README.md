@@ -1,8 +1,9 @@
 Purpose
 ===
 
-The purpose of this script is to for automating the kernel emerge, eselect, compile, install, etc to save some
-effort when installing, upgrading, or trying a new kernel.
+Purpose: Automating the kernel emerge, eselect, compile, configuration copying and detection, 
+hardware detection install, etc along with grub configuration updating to save some effort when 
+installing, upgrading, or trying a new kernel.
 
 Pictures
 ===
