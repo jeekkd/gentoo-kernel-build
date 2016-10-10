@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Written by: https://gitlab.com/u/huuteml
 # Website: https://daulton.ca
-# Purpose: Automating the kernel emerge, eselect, compile, install, etc to save some
-# effort when installing, upgrading, or trying a new kernel.
+# Purpose: Automating the kernel emerge, eselect, compile, configuration copying and detection, 
+# hardware detection install, etc along with grub configuration updating to save some effort when 
+# installing, upgrading, or trying a new kernel.
 
 # askInitramfs()
 # Function to ask the user if they also need a initramfs, if yes it will create and install the initramfs.
@@ -29,6 +30,8 @@ confUpdate() {
 	env-update && source /etc/profile
 }
 
+# control_c()
+# Trap Ctrl-C for a quick exit when necessary
 control_c() {
 	echo "Control-c pressed - exiting NOW"
 	exit 1
@@ -81,39 +84,41 @@ read -r inputNumber
 eselect kernel set "$inputNumber"
 
 echo
-echo "Do you want to copy your current kernels config to the new kernels directory? Y/N"
+echo "Do you want to search the current directory for configs named .config (Press 1)
+or Do you want to copy your current kernels config to the new kernels directory? (Press 2)
+or type 'skip' to skip this part.
+Tip: If you want option 2 but you do not have the config there yet, use another terminal to copy it"
 read -r answer
-if [[ $answer == "Y" || $answer == "y" ]]; then
-	echo
-	echo "Do you want to search the current directory for configs named .config? Y/N"
-	echo "Note: If you want this but you do not have the config there yet, use another terminal to copy it"
-	read -r answer
-	if [[ $answer == "Y" || $answer == "y" ]]; then
-		configLocation=$(find . -maxdepth 1 -name '.config*' | tail -n 1)
+if [[ $answer == "1" ]]; then
+	configLocation=$(find . -maxdepth 1 -name '.config*' | tail -n 1)
+	pathRemove=${configLocation##*/}
+	cp "$pathRemove" /usr/src/linux/.config
+	if [ $? -gt 0 ]; then
+		configLocation=$(find . -maxdepth 1 -name 'config-*' | tail -n 1)
 		pathRemove=${configLocation##*/}
 		cp "$pathRemove" /usr/src/linux/.config
-		if [ $? -gt 0 ]; then
-			configLocation=$(find . -maxdepth 1 -name 'config-*' | tail -n 1)
-			pathRemove=${configLocation##*/}
-			cp "$pathRemove" /usr/src/linux/.config
-		fi
 	fi
+elif [[ $answer == "2" ]]; then
+	modprobe configs
+	zcat /proc/config.gz > .config
+	mv .config /usr/src/linux
 	if [ $? -gt 0 ]; then
-		modprobe configs
-		zcat /proc/config.gz > /usr/src/linux/.config
+		configLocation=$(find /boot/* -name 'config-*' | tail -n 1)
+		cp "$configLocation" /usr/src/linux/.config
 		if [ $? -gt 0 ]; then
-			configLocation=$(find /boot/* -name 'config-*' | tail -n 1)
+			configLocation=$(find /usr/src/* -name '.config' | tail -n 1)
 			cp "$configLocation" /usr/src/linux/.config
 			if [ $? -gt 0 ]; then
-				configLocation=$(find /usr/src/* -name '.config' | tail -n 1)
+				configLocation=$(find /usr/src/* -name '.config*' | tail -n 1)
 				cp "$configLocation" /usr/src/linux/.config
-				if [ $? -gt 0 ]; then
-					configLocation=$(find /usr/src/* -name '.config*' | tail -n 1)
-					cp "$configLocation" /usr/src/linux/.config
-				fi	
 			fi	
-		fi
+		fi	
 	fi
+elif [[ $answer == "skip" || $answer == "Skip" || $answer = "SKIP" ]]; then
+	echo "Skipping copying previous kernel configuration or a custom one..."
+else 
+	echo "Error: Select an option that is the number 1 to 2 or skip"
+	exit 1
 fi
 
 echo
@@ -127,19 +132,33 @@ if [[ $answer == "Y" ]] || [[ $answer == "y" ]]; then
 fi
 
 echo
-echo "Do you want to build using the regular method or Sakakis build kernel script?"
-echo "1 for regular, 2 for Sakakis build kernel script, 3 for genkernel and type skip to skip this"
+echo "Press 1 for compiling using the regular method, 2 for Sakakis build kernel script, 3 for genkernel
+Note: Type skip to skip compiling the kernel."
 read -r answer
 if [[ $answer == "1" ]]; then
-	confUpdate "sys-kernel/genkernel-next"
-	cd /usr/src/linux || echo "Error: Cannot change directory to /usr/src/linux" && exit 1
+	cd /usr/src/linux
 	echo "Cleaning directory..."
 	make clean
-	echo "Launching make menuconfig..."
-	make menuconfig
+	echo
+	echo "Would you like to use menuconfig (press 1) or gconfig (press 2)?"
+	echo "Note: Type 'skip' to skip this and go straight to compiling."
+	read -r answer
+	if [[ $answer == "1" ]]; then  
+		echo "Launching make menuconfig..."
+		make menuconfig
+	elif [[ $answer == "2" ]]; then  
+		echo "Launching make gconfig..."
+		make gconfig
+	elif [[ $answer == "skip" || $answer == "Skip" || $answer = "SKIP" ]]; then
+		echo "Skipping launching a kernel configuration menu, going straight to compiling..."
+	else
+		echo "Error: Please enter the numbers 1 or 2 as your input. Anything else is an invalid option."
+		exit 1
+	fi
+	echo
 	echo "Starting to build kernel.. please wait..."
-	detectCores=$(cat /proc/cpuinfo | awk '/^processor/{print $3}' | tail -1)
-	make -j"$detectCores"
+	coreCount=$(cat /proc/cpuinfo | awk '/^processor/{print $3}' | tail -1)
+	make -j"$coreCount"
 	echo "Installing modules and the kernel..."
 	make modules_install && make install
 	if [ $? -eq 0 ]; then
@@ -157,13 +176,33 @@ elif [[ $answer == "3" ]]; then
 	echo "optional prompt at the end of the compiling to create an initramfs."
 	read -p "Press any key to continue... "
 	genkernel --install kernel
-	askInitramfs
+	if [ $? -eq 0 ]; then
+		askInitramfs
+	fi
 elif [[ $answer == "skip" || $answer == "Skip" || $answer = "SKIP" ]]; then
 	echo "Skipping building the kernel..."
 else
 	echo "Please choose an option between 1 to 3 or type skip"
+	exit 1
+fi
+
+echo
+echo "Would you like to update your grub.cfg? Y/N"
+read -r answer
+if [[ $answer == "Y" || $answer == "y" ]]; then
+	# Sometimes grub saves new config with .new extension so this is assuring that an existing config is removed
+	# and the new one is renamed after installation so it can be used properly		
+	if [ -f /boot/grub/grub.cfg ]; then
+		rm -f /boot/grub/grub.cfg
+	fi
+	
+	grub-mkconfig -o /boot/grub/grub.cfg
+	if [ $? -eq 0 ]; then
+		if [ -f /boot/grub/grub.cfg.new ]; then
+			mv /boot/grub/grub.cfg.new /boot/grub/grub.cfg
+		fi 
+	fi
 fi
 
 echo
 echo "Complete!"
-echo "Notice: Remember to update your bootloader to use the new kernel"
