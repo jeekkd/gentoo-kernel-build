@@ -13,13 +13,14 @@ askInitramfs() {
 	read -r answer
 	if [[ $answer == "Y" ]] || [[ $answer == "y" ]]; then
 		echo "Do you need a standard initramfs (Press 1) or with support for luks, lvm, busybox (Press 2)"
-		if [[ $answer == "1" ]]; then
+		read -r initramfsAnswer
+		if [[ $initramfsAnswer == "1" ]]; then
 			genkernel --install initramfs
 			if [ $? -gt 0 ]; then
 				confUpdate "sys-kernel/genkernel-next"
 				genkernel --install initramfs
 			fi
-		elif [[ $answer == "2" ]]; then
+		elif [[ $initramfsAnswer == "2" ]]; then
 			genkernel --luks --lvm --busybox initramfs
 			if [ $? -gt 0 ]; then
 				confUpdate "sys-kernel/genkernel-next"
@@ -52,7 +53,7 @@ control_c() {
 
 trap control_c SIGINT
 
-echo "Select the kernel you'd like to install/update. Type skip to skip this."
+echo "Select the kernel you'd like to install/update: "
 echo
 echo "1. gentoo-sources"
 echo "2. hardened-sources"
@@ -61,6 +62,7 @@ echo "4. pf-sources"
 echo "5. vanilla-sources"
 echo "6. zen-sources"
 echo "7. git-sources"
+echo "8. Skip this selection"
 read -r answer
 if [[ $answer -ge "1" ]] && [[ $answer -le "7" ]]; then
 	echo
@@ -81,10 +83,10 @@ elif [[ $answer == "6" ]]; then
 	confUpdate "sys-kernel/zen-sources"
 elif [[ $answer == "7" ]]; then
 	confUpdate "sys-kernel/git-sources"
-elif [[ $answer == "skip" || $answer == "Skip" || $answer = "SKIP" ]]; then
-	echo "Skipping new kernel install/update..."
+elif [[ $answer == "8" ]]; then
+	echo "Skipping kernel installation/update..."
 else
-	echo "Please choose an option between 1 to 7 or type skip."
+	echo "Please choose an option between 1 to 8."
 fi
 
 echo
@@ -96,38 +98,41 @@ echo "Which kernel do you want to use? Type a number: "
 read -r inputNumber
 eselect kernel set "$inputNumber"
 
+currentKernel=$(eselect kernel list | awk '/*/{print $3}')
+if [[ $currentKernel == "*" ]]; then 
+	currentKernel=$(eselect kernel list | awk '/*/{print $2}')
+fi
 echo
-echo "Do you want to search the current directory for configs named .config (Press 1)
-or Do you want to copy your current kernels config to the new kernels directory? (Press 2)
-or type 'skip' to skip this part.
+echo "Press 1 - Do you want to search the current directory for configs named .config?
+Press 2 - Do you want to copy your current kernels config to the new kernels directory?
+Press 3 - To skip this part.
 Tip: If you want option 2 but you do not have the config there yet, use another terminal to copy it"
-read -r answer
-if [[ $answer == "1" ]]; then
+read -r configAnswer
+if [[ $configAnswer == "1" ]]; then
 	configLocation=$(find . -maxdepth 1 -name '.config*' | tail -n 1)
 	pathRemove=${configLocation##*/}
-	cp "$pathRemove" /usr/src/linux/.config
+	cp "$pathRemove" /usr/src/"$currentKernel"/.config
 	if [ $? -gt 0 ]; then
 		configLocation=$(find . -maxdepth 1 -name 'config-*' | tail -n 1)
 		pathRemove=${configLocation##*/}
-		cp "$pathRemove" /usr/src/linux/.config
+		cp "$pathRemove" /usr/src/"$currentKernel"/.config
 	fi
-elif [[ $answer == "2" ]]; then
+elif [[ $configAnswer == "2" ]]; then
 	modprobe configs
-	zcat /proc/config.gz > .config
-	mv .config /usr/src/linux/
+	zcat /proc/config.gz > /usr/src/"$currentKernel"/.config
 	if [ $? -gt 0 ]; then
 		configLocation=$(find /boot/* -name 'config-*' | tail -n 1)
-		cp "$configLocation" /usr/src/linux/.config
+		cp "$configLocation" /usr/src/"$currentKernel"/
 		if [ $? -gt 0 ]; then
 			configLocation=$(find /usr/src/* -name '.config' | tail -n 1)
-			cp "$configLocation" /usr/src/linux/.config
+			cp "$configLocation" /usr/src/"$currentKernel"/
 			if [ $? -gt 0 ]; then
 				configLocation=$(find /usr/src/* -name '.config*' | tail -n 1)
-				cp "$configLocation" /usr/src/linux/.config
+				cp "$configLocation" /usr/src/"$currentKernel"/
 			fi	
 		fi	
 	fi
-elif [[ $answer == "skip" || $answer == "Skip" || $answer = "SKIP" ]]; then
+elif [[ $configAnswer == "3" ]]; then
 	echo "Skipping copying previous kernel configuration or a custom one..."
 else 
 	echo "Error: Select an option that is the number 1 to 2 or skip"
@@ -145,18 +150,39 @@ if [[ $answer == "Y" ]] || [[ $answer == "y" ]]; then
 fi
 
 echo
-echo "Press 1 for compiling using the regular method, 2 for Sakakis build kernel script, 3 for genkernel
-Note: Type skip to skip compiling the kernel."
+echo "Press 1 - Compiling using the regular method
+Press 2 - Sakakis build kernel script
+Press 3 - genkernel
+Press 4 - To skip this part."
 read -r answer
 if [[ $answer == "1" ]]; then
 	echo
-	echo "Would you like to use menuconfig (press 1) or gconfig (press 2)?"
-	echo "Note: Type 'skip' to skip this and go straight to compiling."
+	echo "Press 1 to use menuconfig."
+	echo "Press 2 to use gconfig."
+	echo "Press 3 to skip this and go straight to compiling."
 	read -r answer
-	cd /usr/src/linux
 	echo
-	echo "Cleaning directory..."
-	make clean
+	coreTotal=$(cat /proc/cpuinfo | awk '/^processor/{print $3}' | tail -1)
+	coreCount=$((coreTotal + 1))
+	echo "How many CPU cores would you like to compile with? You have: $coreCount available"
+	read -r coreCount
+	coreCount=$((coreCount + 1))
+	
+	cd /usr/src/"$currentKernel"/
+	correctDir=/usr/src/"$currentKernel"/
+	presentDir=$(pwd)
+	if [[ $presentDir != $correctDir ]]; then  
+		currentKernel=$(eselect kernel list | awk '/*/{print $3}')
+		if [[ $currentKernel == "*" ]]; then 
+			currentKernel=$(eselect kernel list | awk '/*/{print $2}')
+			cd /usr/src/"$currentKernel"
+			if [ $? -gt 0 ]; then
+				echo "Error: cannot change directory to /usr/src/$currentKernel - exiting"
+				exit 1
+			fi
+		fi
+	fi
+	
 	echo
 	if [[ $answer == "1" ]]; then  
 		echo "Launching make menuconfig..."
@@ -164,15 +190,17 @@ if [[ $answer == "1" ]]; then
 	elif [[ $answer == "2" ]]; then  
 		echo "Launching make gconfig..."
 		make gconfig
-	elif [[ $answer == "skip" || $answer == "Skip" || $answer = "SKIP" ]]; then
+	elif [[ $answer == "3" ]]; then  
 		echo "Skipping launching a kernel configuration menu, going straight to compiling..."
 	else
-		echo "Error: Please enter the numbers 1 or 2 as your input. Anything else is an invalid option."
+		echo "Error: Please enter the numbers 1 to 3 as your input. Anything else is an invalid option."
 		exit 1
 	fi
 	echo
+	echo "Cleaning directory..."
+	make clean
+	echo
 	echo "Starting to build kernel.. please wait..."
-	coreCount=$(cat /proc/cpuinfo | awk '/^processor/{print $3}' | tail -1)
 	make -j "$coreCount"
 	echo
 	echo "Installing modules and the kernel..."
@@ -192,14 +220,42 @@ elif [[ $answer == "3" ]]; then
 	echo "options you may need to manually configure the parameters for your usage case. There is an"
 	echo "optional prompt at the end of the compiling to create an initramfs."
 	read -p "Press any key to continue... "
-	genkernel --install kernel
-	if [ $? -eq 0 ]; then
-		askInitramfs
+	echo
+	echo "Press 1 to use menuconfig."
+	echo "Press 2 to use gconfig."
+	echo "Press 3 to skip this and go straight to compiling."
+	read -r answer
+	echo
+	coreTotal=$(cat /proc/cpuinfo | awk '/^processor/{print $3}' | tail -1)
+	coreCount=$((coreTotal + 1))
+	echo "How many CPU cores would you like to compile with? You have: $coreCount available"
+	read -r coreCount
+	coreCount=$((coreCount + 1))
+	echo
+	echo
+	if [[ $answer == "1" ]]; then  
+		genkernel --install --makeopts=-j"$coreCount" --clean --no-mrproper --kernel-config=/usr/src/linux/.config --menuconfig kernel
+		if [ $? -eq 0 ]; then
+			askInitramfs
+		fi
+	elif [[ $answer == "2" ]]; then  
+		genkernel --install --makeopts=-j"$coreCount" --clean --no-mrproper --kernel-config=/usr/src/linux/.config --gconfig kernel
+		if [ $? -eq 0 ]; then
+			askInitramfs
+		fi
+	elif [[ $answer == "3" ]]; then  
+		genkernel --install --makeopts=-j"$coreCount" --clean --no-mrproper --kernel-config=/usr/src/linux/.config kernel
+		if [ $? -eq 0 ]; then
+			askInitramfs
+		fi
+	else
+		echo "Error: Please enter the numbers 1 to 3 as your input. Anything else is an invalid option."
+		exit 1
 	fi
-elif [[ $answer == "skip" || $answer == "Skip" || $answer = "SKIP" ]]; then
+elif [[ $answer == "4" ]]; then
 	echo "Skipping building the kernel..."
 else
-	echo "Please choose an option between 1 to 3 or type skip"
+	echo "Please choose an option between 1 to 4. Anything else is an invalid option."
 	exit 1
 fi
 
