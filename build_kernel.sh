@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# Written by: https://gitlab.com/u/huuteml
-# Website: https://daulton.ca
-# Purpose: Automating the kernel emerge, eselect, compile, configuration copying and detection, 
+# Written by: 	Daulton
+# Website: 		https://daulton.ca
+# Repository:	https://github.com/jeekkd
+#
+# Purpopse: Automating the kernel emerge, eselect, compile, configuration copying and detection, 
 # hardware detection install, etc along with grub configuration updating to save some effort when 
 # installing, upgrading, or trying a new kernel.
 
@@ -17,13 +19,13 @@ askInitramfs() {
 		if [[ $initramfsAnswer == "1" ]]; then
 			genkernel --install initramfs
 			if [ $? -gt 0 ]; then
-				confUpdate "sys-kernel/genkernel-next"
+				isInstalled "sys-kernel/genkernel-next"
 				genkernel --install initramfs
 			fi
 		elif [[ $initramfsAnswer == "2" ]]; then
 			genkernel --luks --lvm --busybox initramfs
 			if [ $? -gt 0 ]; then
-				confUpdate "sys-kernel/genkernel-next"
+				isInstalled "sys-kernel/genkernel-next"
 				genkernel --luks --lvm --busybox initramfs
 			fi
 		else
@@ -43,6 +45,19 @@ confUpdate() {
 	fi
 	env-update && source /etc/profile
 }
+
+# isInstalled
+# If given a valid package atom it will check if the package is installed on the local system
+# Example: isInstalled "sys-kernel/genkernel-next" 
+# If the package is not installed it will call confUpdate and install the package
+isInstalled() {
+	package=$1
+    packageTest=$(equery -q list "$package")
+    if [[ -z ${packageTest+x} ]]; then
+		confUpdate "$package"
+    fi
+}
+
 
 # control_c()
 # Trap Ctrl-C for a quick exit when necessary
@@ -145,7 +160,7 @@ This updates the .config for the current selected kernel with support for your
 systems hardware that does not have support enabled currently."
 read -r answer
 if [[ $answer == "Y" ]] || [[ $answer == "y" ]]; then  
-	confUpdate "sys-kernel/kergen"
+	isInstalled "sys-kernel/kergen"
 	kergen -g
 fi
 
@@ -213,7 +228,7 @@ elif [[ $answer == "2" ]]; then
 	echo "Starting to build the kernel..."
 	buildkernel --ask --verbose
 elif [[ $answer == "3" ]]; then
-	confUpdate "sys-kernel/genkernel-next"
+	isInstalled "sys-kernel/genkernel-next"
 	echo
 	echo "Starting to build the kernel..."
 	echo "Notice: This configuration for genkernel only makes and installs the kernel. For additional"
