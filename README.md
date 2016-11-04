@@ -1,7 +1,7 @@
 Purpose
 ===
 
-Purpose: Automating the kernel emerge, eselect, compile, configuration copying and detection, 
+Automating the kernel emerge, eselect, compile, configuration copying and detection, 
 hardware detection install, etc along with grub configuration updating to save some effort when 
 installing, upgrading, or trying a new kernel.
 
@@ -16,7 +16,7 @@ How to use
 - Lets get the source
 
 ```
-git clone https://gitlab.com/huuteml/gentoo_kernel_build.git && cd gentoo_kernel_build
+git clone https://github.com/jeekkd/gentoo-kernel-build.git && cd gentoo-kernel-build
 ```
 
 - First we must change the scripts permissions. This will make the script readable, writable, and 
