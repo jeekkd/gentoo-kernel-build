@@ -77,7 +77,10 @@ echo "4. pf-sources"
 echo "5. vanilla-sources"
 echo "6. zen-sources"
 echo "7. git-sources"
-echo "8. Skip this selection"
+echo "8. aufs-sources"
+echo "9. rt-sources"
+echo "10. tuxonice-sources"
+echo "11. Skip this selection"
 read -r answer
 if [[ $answer -ge "1" ]] && [[ $answer -le "7" ]]; then
 	echo
@@ -99,9 +102,15 @@ elif [[ $answer == "6" ]]; then
 elif [[ $answer == "7" ]]; then
 	confUpdate "sys-kernel/git-sources"
 elif [[ $answer == "8" ]]; then
+	confUpdate "sys-kernel/aufs-sources"
+elif [[ $answer == "9" ]]; then
+	confUpdate "sys-kernel/rt-sources"
+elif [[ $answer == "10" ]]; then
+	confUpdate "sys-kernel/tuxonice-sources"
+elif [[ $answer == "11" ]]; then
 	echo "Skipping kernel installation/update..."
 else
-	echo "Please choose an option between 1 to 8."
+	echo "Please choose an option between 1 to 11."
 fi
 
 echo
@@ -287,7 +296,11 @@ if [[ $answer == "Y" || $answer == "y" ]]; then
 		# removed and the new one is renamed after installation so it can be used properly
 		if [ -f /boot/grub/grub.cfg.new ]; then
 			mv /boot/grub/grub.cfg.new /boot/grub/grub.cfg
-		fi 
+		fi
+		if [ ! -f /boot/grub/grub.cfg ]; then
+			echo "Error: grub.cfg does not exist - running mkconfig again to attempt to fix the issue"
+			grub-mkconfig -o /boot/grub/grub.cfg
+		fi
 	fi
 fi
 
