@@ -53,7 +53,7 @@ confUpdate() {
 isInstalled() {
 	package=$1
     packageTest=$(equery -q list "$package")
-    if [[ -z ${packageTest+x} ]]; then
+    if [[ -z ${packageTest} ]]; then
 		confUpdate "$package"
     fi
 }
@@ -64,6 +64,15 @@ isInstalled() {
 control_c() {
 	echo "Control-c pressed - exiting NOW"
 	exit 1
+}
+
+# unmaskKernel() 
+# Unmask the users selected kernel so unstable versions may be installed
+unmaskKernel() {
+	if [[ $unmaskAnswer == "Y" ]] || [[ $unmaskAnswer == "y" ]]; then
+		kernelName=$(echo "$1" | cut -f 2 -d "/")	
+		echo "$1" > /etc/portage/package.keywords/"$kernelName"
+	fi
 }
 
 trap control_c SIGINT
@@ -82,35 +91,49 @@ echo "9. rt-sources"
 echo "10. tuxonice-sources"
 echo "11. Skip this selection"
 read -r answer
-if [[ $answer -ge "1" ]] && [[ $answer -le "7" ]]; then
+if [[ $answer -ge "1" ]] && [[ $answer -le "10" ]]; then
 	echo
-	emerge-webrsync
+	emerge --sync
+	echo
+	echo "Would you like to unmask testing version of the selected kernel? Y/N"
+	read -r unmaskAnswer
 fi
 
 if [[ $answer == "1" ]]; then
+	unmaskKernel "sys-kernel/gentoo-sources"
 	confUpdate "sys-kernel/gentoo-sources"
 elif [[ $answer == "2" ]]; then
+	unmaskKernel "sys-kernel/hardened-sources"
 	confUpdate "sys-kernel/hardened-sources"
 elif [[ $answer == "3" ]]; then
+	unmaskKernel "sys-kernel/ck-sources"
 	confUpdate "sys-kernel/ck-sources"
 elif [[ $answer == "4" ]]; then
+	unmaskKernel "sys-kernel/pf-sources"
 	confUpdate "sys-kernel/pf-sources"
 elif [[ $answer == "5" ]]; then
+	unmaskKernel "sys-kernel/vanilla-sources"
 	confUpdate "sys-kernel/vanilla-sources"
 elif [[ $answer == "6" ]]; then
+	unmaskKernel "sys-kernel/zen-sources"
 	confUpdate "sys-kernel/zen-sources"
 elif [[ $answer == "7" ]]; then
+	unmaskKernel "sys-kernel/git-sources"
 	confUpdate "sys-kernel/git-sources"
 elif [[ $answer == "8" ]]; then
+	unmaskKernel "sys-kernel/aufs-sources"
 	confUpdate "sys-kernel/aufs-sources"
 elif [[ $answer == "9" ]]; then
+	unmaskKernel "sys-kernel/rt-sources"
 	confUpdate "sys-kernel/rt-sources"
 elif [[ $answer == "10" ]]; then
+	unmaskKernel "sys-kernel/tuxonice-sources"
 	confUpdate "sys-kernel/tuxonice-sources"
 elif [[ $answer == "11" ]]; then
 	echo "Skipping kernel installation/update..."
 else
-	echo "Please choose an option between 1 to 11."
+	echo "Error: please choose an option between 1 to 11."
+	exit 1
 fi
 
 echo
@@ -121,6 +144,14 @@ echo
 echo "Which kernel do you want to use? Type a number: "
 read -r inputNumber
 eselect kernel set "$inputNumber"
+
+echo
+echo "Installing gentoolkit is necessary if hardware detection and/or genkernel kernel build
+options are used. Install? Y/N"
+read -r gentoolkitAnswer
+if [[ $gentoolkitAnswer == "Y" ]] || [[ $gentoolkitAnswer == "y" ]]; then
+	confUpdate "app-portage/gentoolkit"
+fi
 
 currentKernel=$(eselect kernel list | awk '/*/{print $3}')
 if [[ $currentKernel == "*" ]]; then 
@@ -168,7 +199,10 @@ echo "Would you like to use the package 'kergen' to detect your systems hardware
 This updates the .config for the current selected kernel with support for your
 systems hardware that does not have support enabled currently."
 read -r answer
-if [[ $answer == "Y" ]] || [[ $answer == "y" ]]; then  
+if [[ $answer == "Y" ]] || [[ $answer == "y" ]]; then
+	if [ ! -f /etc/portage/package.use/sys-kernel_kergen~ ]; then
+		echo "sys-kernel/kergen" > /etc/portage/package.keywords/kergen
+	fi
 	isInstalled "sys-kernel/kergen"
 	kergen -g
 fi
@@ -226,17 +260,20 @@ if [[ $answer == "1" ]]; then
 	echo
 	echo "Starting to build kernel.. please wait..."
 	make -j "$coreCount"
-	echo
-	echo "Installing modules and the kernel..."
-	make modules_install
-	make install
 	if [ $? -eq 0 ]; then
-		askInitramfs
+		echo
+		echo "Installing modules and the kernel..."
+		make modules_install
+		make install
+		if [ $? -eq 0 ]; then
+			askInitramfs
+		fi
 	fi
 elif [[ $answer == "2" ]]; then
 	echo "Starting to build the kernel..."
 	buildkernel --ask --verbose
 elif [[ $answer == "3" ]]; then
+	currentKernel=$(eselect kernel list | awk '/*/{print $3}')
 	isInstalled "sys-kernel/genkernel-next"
 	echo
 	echo "Starting to build the kernel..."
@@ -256,19 +293,32 @@ elif [[ $answer == "3" ]]; then
 	read -r coreCount
 	coreCount=$((coreCount + 1))
 	echo
+	if [ ! -f /usr/src/"$currentKernel"/.config ]; then
+		echo "Error: .config at /usr/src/$currentKernel doesn't exist"
+		echo "Continue (press 1) or use generic configuration provided by genkernel (press 2)?"
+		read -r selectionAnswer
+		if [[ $selectionAnswer == "1" ]]; then  
+			echo "Continuing.."
+		elif [[ $selectionAnswer == "2" ]]; then  
+			genkernel --clean --install all
+		else
+			echo "Error: Invalid selection entered, please enter the numbers 1 or 2 - exiting"
+			exit 1
+		fi
+	fi
 	echo
 	if [[ $answer == "1" ]]; then  
-		genkernel --install --makeopts=-j"$coreCount" --clean --no-mrproper --kernel-config=/usr/src/linux/.config --menuconfig kernel
+		genkernel --install --makeopts=-j"$coreCount" --clean --no-mrproper --kernel-config=/usr/src/"$currentKernel"/.config --menuconfig kernel
 		if [ $? -eq 0 ]; then
 			askInitramfs
 		fi
 	elif [[ $answer == "2" ]]; then  
-		genkernel --install --makeopts=-j"$coreCount" --clean --no-mrproper --kernel-config=/usr/src/linux/.config --gconfig kernel
+		genkernel --install --makeopts=-j"$coreCount" --clean --no-mrproper --kernel-config=/usr/src/"$currentKernel"/.config --gconfig kernel
 		if [ $? -eq 0 ]; then
 			askInitramfs
 		fi
 	elif [[ $answer == "3" ]]; then  
-		genkernel --install --makeopts=-j"$coreCount" --clean --no-mrproper --kernel-config=/usr/src/linux/.config kernel
+		genkernel --install --makeopts=-j"$coreCount" --clean --no-mrproper --kernel-config=/usr/src/"$currentKernel"/.config kernel
 		if [ $? -eq 0 ]; then
 			askInitramfs
 		fi
@@ -285,21 +335,72 @@ fi
 
 echo
 echo "Would you like to update your grub.cfg? Y/N"
-read -r answer
-if [[ $answer == "Y" || $answer == "y" ]]; then		
+read -r updateGrub
+if [[ $updateGrub == "Y" || $updateGrub == "y" ]]; then		
+	isInstalled "sys-boot/grub:2"
+	isInstalled "sys-boot/os-prober"
+	echo
+	isBootMounted=$(mount | grep /boot)
+	if [[ -z ${isBootMounted} ]]; then
+		echo "Error: /boot is not mounted - mount before attempting to proceed with GRUB installation."
+		exit 1
+	fi
+	
+	if [ ! -d /boot/grub/ ]; then
+		echo "Error: /boot/grub/ directory does not exist. Install grub onto main disk? Y/N"
+		read -r installGrub
+		if [[ $installGrub == "Y" || $installGrub == "y" ]]; then
+			lsblk
+			echo
+			echo "Is this a BIOS with MBR or BIOS with GPT (press 1) or UEFI with GPT (press 2)?"
+			read -r grubType
+			if [[ $grubType == "1" ]]; then
+				echo
+				echo "Which disk do you want to install GRUB onto? Ex: /dev/sda"
+				read -r whichDisk
+				grub-install "$whichDisk"
+				echo
+			elif [[ $grubType == "2" ]]; then
+				grub-install --efi-directory=/boot/efi
+				echo
+			else
+				echo "Error: Enter a number that is either 1 or 2"
+			fi
+		else
+			echo "User entered: $installGrub - cannot proceed with updating GRUB without installing"
+			echo "it first."
+			break
+		fi
+	fi
+	
 	if [ -f /boot/grub/grub.cfg ]; then
 		rm -f /boot/grub/grub.cfg
+	elif [ -f /boot/efi/EFI/GRUB/grub.cfg ]; then
+		rm -f /boot/efi/EFI/GRUB/grub.cfg
 	fi
-	grub-mkconfig -o /boot/grub/grub.cfg
-	if [ $? -eq 0 ]; then
-		# Sometimes grub saves new config with .new extension so this is assuring that an existing config is 
-		# removed and the new one is renamed after installation so it can be used properly
-		if [ -f /boot/grub/grub.cfg.new ]; then
-			mv /boot/grub/grub.cfg.new /boot/grub/grub.cfg
+	
+	if [[ $grubType == "1" ]]; then
+		grub-mkconfig -o /boot/grub/grub.cfg
+		if [ $? -eq 0 ]; then
+			# Sometimes grub saves new config with .new extension so this is assuring that an existing config is 
+			# removed and the new one is renamed after installation so it can be used properly
+			if [ -f /boot/grub/grub.cfg.new ]; then
+				mv /boot/grub/grub.cfg.new /boot/grub/grub.cfg
+			fi
 		fi
-		if [ ! -f /boot/grub/grub.cfg ]; then
+		if [ ! -f /boot/grub/grub.cfg ]; then	
 			echo "Error: grub.cfg does not exist - running mkconfig again to attempt to fix the issue"
 			grub-mkconfig -o /boot/grub/grub.cfg
+		fi
+	elif [[ $grubType == "2" ]]; then
+		grub-mkconfig -o /boot/efi/EFI/GRUB/grub.cfg
+		if [ -f /boot/efi/EFI/GRUB/grub.cfg.new ]; then
+			mv /boot/efi/EFI/GRUB/grub.cfg.new /boot/efi/EFI/GRUB/grub.cfg
+		fi
+		
+		if [ ! -f /boot/efi/EFI/GRUB/grub.cfg ]; then	
+			echo "Error: grub.cfg does not exist - running mkconfig again to attempt to fix the issue"
+			grub-mkconfig -o /boot/efi/EFI/GRUB/grub.cfg
 		fi
 	fi
 fi

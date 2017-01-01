@@ -5,10 +5,26 @@ Automating the kernel emerge, eselect, compile, configuration copying and detect
 hardware detection install, etc along with grub configuration updating to save some effort when 
 installing, upgrading, or trying a new kernel.
 
+Features
+===
+
+- A selection of kernels to choose from including gentoo-sources, hardened-sources, vanilla-sources, pf-sources, etc
+- The option to choose to unmask testing versions of your selected kernel
+- Handles the eselect kernel set by giving you a list of installed kernels to select in a easy manner
+- If dependencies are not installed you are prompted if you would like the script to install them
+- The option to choose to copy a kernel .config from the scripts running directory to the selected kernels location or using the kernel from the running system
+- Makes use of kergen for enabling hardware support for the currently running system in the selected kernel
+- Options of compiling the kernel with the regular make method, Sakakis build kernel script, or Genkernel
+- In all compiling methods you are given the amount of CPU cores available and prompted to select how many to use
+- In the regular make method and Genkernel selections you are given the option of using menuconfig or gconfig for kernel customization
+- Supports updating GRUB config, or if GRUB is not installed installs and walks you through configuration by prompting which disk to install to, etc.
+- Among other nifty features..
+
 Pictures
 ===
 
-![daulton.ca](https://daulton.ca/lib/exe/fetch.php/bash_script_pictures:build_kernel_example.png?w=700&h=761&tok=40f9e0)
+![daulton.ca](https://daulton.ca/lib/exe/fetch.php/bash_script_pictures:build-kernel-00.png?cache=)
+
 
 How to use
 ===
