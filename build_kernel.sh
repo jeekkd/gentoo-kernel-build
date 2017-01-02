@@ -12,17 +12,17 @@
 askInitramfs() {
 	echo
 	echo "Do you also need a initramfs? Y/N"
-	read -r answer
-	if [[ $answer == "Y" ]] || [[ $answer == "y" ]]; then
+	read -r initramfsAnswer
+	if [[ $initramfsAnswer == "Y" ]] || [[ $initramfsAnswer == "y" ]]; then
 		echo "Do you need a standard initramfs (Press 1) or with support for luks, lvm, busybox (Press 2)"
-		read -r initramfsAnswer
-		if [[ $initramfsAnswer == "1" ]]; then
+		read -r initramfsType
+		if [[ $initramfsType == "1" ]]; then
 			genkernel --install initramfs
 			if [ $? -gt 0 ]; then
 				isInstalled "sys-kernel/genkernel-next"
 				genkernel --install initramfs
 			fi
-		elif [[ $initramfsAnswer == "2" ]]; then
+		elif [[ $initramfsType == "2" ]]; then
 			genkernel --luks --lvm --busybox initramfs
 			if [ $? -gt 0 ]; then
 				isInstalled "sys-kernel/genkernel-next"
