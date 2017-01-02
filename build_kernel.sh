@@ -71,6 +71,7 @@ control_c() {
 unmaskKernel() {
 	if [[ $unmaskAnswer == "Y" ]] || [[ $unmaskAnswer == "y" ]]; then
 		kernelName=$(echo "$1" | cut -f 2 -d "/")	
+		mkdir -p /etc/portage/package.keywords/
 		echo "$1" > /etc/portage/package.keywords/"$kernelName"
 	fi
 }
