@@ -14,25 +14,33 @@ askInitramfs() {
 	echo "Do you also need a initramfs? Y/N"
 	read -r initramfsAnswer
 	if [[ $initramfsAnswer == "Y" ]] || [[ $initramfsAnswer == "y" ]]; then
-		echo "Do you need a standard initramfs (Press 1) or with support for luks, lvm, busybox (Press 2)"
+		echo "Standard genkernel initramfs (Press 1)"
+		echo "Genkernel initramfs with support for luks, lvm, busybox (Press 2)"
+		echo "Generic host-only dracut initramfs (Press 3)"
 		read -r initramfsType
 		if [[ $initramfsType == "1" ]]; then
+			isInstalled "sys-kernel/genkernel-next"
 			genkernel --install initramfs
 			if [ $? -gt 0 ]; then
-				isInstalled "sys-kernel/genkernel-next"
 				genkernel --install initramfs
 			fi
 		elif [[ $initramfsType == "2" ]]; then
+			isInstalled "sys-kernel/genkernel-next"
 			genkernel --luks --lvm --busybox initramfs
 			if [ $? -gt 0 ]; then
-				isInstalled "sys-kernel/genkernel-next"
 				genkernel --luks --lvm --busybox initramfs
 			fi
+		elif [[ $initramfsType == "2" ]]; then
+			mkdir -p /etc/portage/package.keywords/
+			echo "sys-kernel/dracut" >> /etc/portage/package.keywords/dracut
+			isInstalled "sys-kernel/dracut"
+			dracut --hostonly '' "$currentKernel"
 		else
-			echo "Error: Select an option that is the numbers 1 or two."
+			echo "Error: Select an option that is the numeric value of 1 to 3"
 			exit 1
 		fi
 	fi	
+	
 }
 
 # confUpdate()
@@ -141,10 +149,18 @@ echo
 echo "Listing installed kernel versions..."
 eselect kernel list
 
-echo
-echo "Which kernel do you want to use? Type a number: "
-read -r inputNumber
-eselect kernel set "$inputNumber"
+for (( ; ; )); do
+	echo
+	echo "Which kernel do you want to use? Type a number: "
+	read -r inputNumber
+	eselect kernel set "$inputNumber"
+	if [ $? -eq 250 ]; then
+		echo
+		echo "Error: There was no input, re-prompting"
+	else
+		break
+	fi
+done
 
 echo
 echo "Installing gentoolkit is necessary if hardware detection and/or genkernel kernel build
@@ -158,42 +174,53 @@ currentKernel=$(eselect kernel list | awk '/*/{print $3}')
 if [[ $currentKernel == "*" ]]; then 
 	currentKernel=$(eselect kernel list | awk '/*/{print $2}')
 fi
-echo
-echo "Press 1 - Do you want to search the current directory for configs named .config?
-Press 2 - Do you want to copy your current kernels config to the new kernels directory?
-Press 3 - To skip this part.
-Tip: If you want option 2 but you do not have the config there yet, use another terminal to copy it"
-read -r configAnswer
-if [[ $configAnswer == "1" ]]; then
-	configLocation=$(find . -maxdepth 1 -name '.config*' | tail -n 1)
-	pathRemove=${configLocation##*/}
-	cp "$pathRemove" /usr/src/"$currentKernel"/.config
-	if [ $? -gt 0 ]; then
-		configLocation=$(find . -maxdepth 1 -name 'config-*' | tail -n 1)
+
+for (( ; ; )); do
+	echo
+	echo "Press 1 - Do you want to search the current directory for configs named .config?"
+	echo "Press 2 - Do you want to copy your running kernel config to the new kernel directory?"
+	echo "Press 3 - To skip this part."
+	echo
+	echo "Tip: If you want option 2 but you do not have the config there yet, use another terminal to copy it"
+	read -r configAnswer
+	if [[ $configAnswer == "1" ]]; then
+		configLocation=$(find . -maxdepth 1 -name '.config*' | tail -n 1)
 		pathRemove=${configLocation##*/}
 		cp "$pathRemove" /usr/src/"$currentKernel"/.config
-	fi
-elif [[ $configAnswer == "2" ]]; then
-	modprobe configs
-	zcat /proc/config.gz > /usr/src/"$currentKernel"/.config
-	if [ $? -gt 0 ]; then
-		configLocation=$(find /boot/* -name 'config-*' | tail -n 1)
-		cp "$configLocation" /usr/src/"$currentKernel"/
 		if [ $? -gt 0 ]; then
-			configLocation=$(find /usr/src/* -name '.config' | tail -n 1)
+			configLocation=$(find . -maxdepth 1 -name 'config-*' | tail -n 1)
+			pathRemove=${configLocation##*/}
+			cp "$pathRemove" /usr/src/"$currentKernel"/.config
+		fi
+	elif [[ $configAnswer == "2" ]]; then
+		modprobe configs
+		zcat /proc/config.gz > /usr/src/"$currentKernel"/.config
+		if [ $? -gt 0 ]; then
+			configLocation=$(find /boot/* -name 'config-*' | tail -n 1)
 			cp "$configLocation" /usr/src/"$currentKernel"/
 			if [ $? -gt 0 ]; then
-				configLocation=$(find /usr/src/* -name '.config*' | tail -n 1)
+				configLocation=$(find /usr/src/* -name '.config' | tail -n 1)
 				cp "$configLocation" /usr/src/"$currentKernel"/
+				if [ $? -gt 0 ]; then
+					configLocation=$(find /usr/src/* -name '.config*' | tail -n 1)
+					cp "$configLocation" /usr/src/"$currentKernel"/
+				fi	
 			fi	
-		fi	
+		fi
+	elif [[ $configAnswer == "3" ]]; then
+		echo "Skipping copying previous kernel configuration or a custom one..."
+	else 
+		echo "Error: Select an option that is the number 1 to 2 or skip"
+		exit 1
 	fi
-elif [[ $configAnswer == "3" ]]; then
-	echo "Skipping copying previous kernel configuration or a custom one..."
-else 
-	echo "Error: Select an option that is the number 1 to 2 or skip"
-	exit 1
-fi
+	
+	if [ ! -f /usr/src/"$currentKernel"/.config ]; then
+		echo
+		echo "Warning: .config at /usr/src/$currentKernel does not exist - try again or press 3 to skip."
+	else
+		break
+	fi
+done
 
 echo
 echo "Would you like to use the package 'kergen' to detect your systems hardware? Y/N
@@ -351,10 +378,12 @@ if [[ $updateGrub == "Y" || $updateGrub == "y" ]]; then
 		echo "Error: /boot/grub/ directory does not exist. Install grub onto main disk? Y/N"
 		read -r installGrub
 		if [[ $installGrub == "Y" || $installGrub == "y" ]]; then
-			lsblk
 			echo
 			echo "Is this a BIOS with MBR or BIOS with GPT (press 1) or UEFI with GPT (press 2)?"
 			read -r grubType
+			echo
+			lsblk
+			echo
 			if [[ $grubType == "1" ]]; then
 				echo
 				echo "Which disk do you want to install GRUB onto? Ex: /dev/sda"
