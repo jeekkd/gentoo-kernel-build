@@ -197,13 +197,13 @@ for (( ; ; )); do
 		zcat /proc/config.gz > /usr/src/"$currentKernel"/.config
 		if [ $? -gt 0 ]; then
 			configLocation=$(find /boot/* -name 'config-*' | tail -n 1)
-			cp "$configLocation" /usr/src/"$currentKernel"/
+			cp "$configLocation" /usr/src/"$currentKernel"/.config
 			if [ $? -gt 0 ]; then
 				configLocation=$(find /usr/src/* -name '.config' | tail -n 1)
-				cp "$configLocation" /usr/src/"$currentKernel"/
+				cp "$configLocation" /usr/src/"$currentKernel"/.config
 				if [ $? -gt 0 ]; then
 					configLocation=$(find /usr/src/* -name '.config*' | tail -n 1)
-					cp "$configLocation" /usr/src/"$currentKernel"/
+					cp "$configLocation" /usr/src/"$currentKernel"/.config
 				fi	
 			fi	
 		fi
