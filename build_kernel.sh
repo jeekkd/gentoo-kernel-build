@@ -403,23 +403,21 @@ if [[ $updateGrub == "Y" || $updateGrub == "y" ]]; then
 		fi
 	fi
 	
+	if [[ -z ${grubType} ]]; then
+		echo "Is this a BIOS with MBR or BIOS with GPT (press 1) or UEFI with GPT (press 2)?"
+		read -r grubType
+	fi
+	
 	if [ -f /boot/grub/grub.cfg ]; then
 		rm -f /boot/grub/grub.cfg
-		if [[ -z ${grubType} ]]; then
-			grubType=1
-		fi
+		
 	elif [ -f /boot/efi/EFI/GRUB/grub.cfg ]; then
 		rm -f /boot/efi/EFI/GRUB/grub.cfg
-		if [[ -z ${grubType} ]]; then
-			grubType=2
-		fi
 	fi
 	
 	if [[ $grubType == "1" ]]; then
 		grub-mkconfig -o /boot/grub/grub.cfg
 		if [ $? -eq 0 ]; then
-			# Sometimes grub saves new config with .new extension so this is assuring that an existing config is 
-			# removed and the new one is renamed after installation so it can be used properly
 			if [ -f /boot/grub/grub.cfg.new ]; then
 				mv /boot/grub/grub.cfg.new /boot/grub/grub.cfg
 			fi
