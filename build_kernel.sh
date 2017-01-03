@@ -405,8 +405,14 @@ if [[ $updateGrub == "Y" || $updateGrub == "y" ]]; then
 	
 	if [ -f /boot/grub/grub.cfg ]; then
 		rm -f /boot/grub/grub.cfg
+		if [[ -z ${grubType} ]]; then
+			grubType=1
+		fi
 	elif [ -f /boot/efi/EFI/GRUB/grub.cfg ]; then
 		rm -f /boot/efi/EFI/GRUB/grub.cfg
+		if [[ -z ${grubType} ]]; then
+			grubType=2
+		fi
 	fi
 	
 	if [[ $grubType == "1" ]]; then
