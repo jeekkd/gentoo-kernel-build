@@ -10,13 +10,13 @@
 # askInitramfs()
 # Function to ask the user if they also need a initramfs, if yes it will create and install the initramfs.
 askInitramfs() {
-	echo
-	echo "Do you also need a initramfs? Y/N"
+	printf "\n"
+	printf "Do you also need a initramfs? Y/N \n"
 	read -r initramfsAnswer
 	if [[ $initramfsAnswer == "Y" ]] || [[ $initramfsAnswer == "y" ]]; then
-		echo "Standard genkernel initramfs (Press 1)"
-		echo "Genkernel initramfs with support for luks, lvm, busybox (Press 2)"
-		echo "Generic host-only dracut initramfs (Press 3)"
+		printf "Standard genkernel initramfs (Press 1) \n"
+		printf "Genkernel initramfs with support for luks, lvm, busybox (Press 2) \n"
+		printf "Generic host-only dracut initramfs (Press 3) \n"
 		read -r initramfsType
 		if [[ $initramfsType == "1" ]]; then
 			isInstalled "sys-kernel/genkernel-next"
@@ -32,11 +32,11 @@ askInitramfs() {
 			fi
 		elif [[ $initramfsType == "2" ]]; then
 			mkdir -p /etc/portage/package.keywords/
-			echo "sys-kernel/dracut" >> /etc/portage/package.keywords/dracut
+			printf "sys-kernel/dracut" >> /etc/portage/package.keywords/dracut
 			isInstalled "sys-kernel/dracut"
 			dracut --hostonly '' "$currentKernel"
 		else
-			echo "Error: Select an option that is the numeric value of 1 to 3"
+			printf "Error: Select an option that is the numeric value of 1 to 3 \n"
 			exit 1
 		fi
 	fi	
@@ -70,7 +70,7 @@ isInstalled() {
 # control_c()
 # Trap Ctrl-C for a quick exit when necessary
 control_c() {
-	echo "Control-c pressed - exiting NOW"
+	printf "Control-c pressed - exiting NOW \n"
 	exit 1
 }
 
@@ -78,33 +78,33 @@ control_c() {
 # Unmask the users selected kernel so unstable versions may be installed
 unmaskKernel() {
 	if [[ $unmaskAnswer == "Y" ]] || [[ $unmaskAnswer == "y" ]]; then
-		kernelName=$(echo "$1" | cut -f 2 -d "/")	
+		kernelName=$(printf "$1" | cut -f 2 -d "/")	
 		mkdir -p /etc/portage/package.keywords/
-		echo "$1" > /etc/portage/package.keywords/"$kernelName"
+		printf "$1\n" > /etc/portage/package.keywords/"$kernelName"
 	fi
 }
 
 trap control_c SIGINT
 
-echo "Select the kernel you'd like to install/update: "
-echo
-echo "1. gentoo-sources"
-echo "2. hardened-sources"
-echo "3. ck-sources"
-echo "4. pf-sources"
-echo "5. vanilla-sources"
-echo "6. zen-sources"
-echo "7. git-sources"
-echo "8. aufs-sources"
-echo "9. rt-sources"
-echo "10. tuxonice-sources"
-echo "11. Skip this selection"
+printf "Select the kernel you'd like to install/update: \n"
+printf "\n"
+printf "1. gentoo-sources \n"
+printf "2. hardened-sources \n"
+printf "3. ck-sources \n"
+printf "4. pf-sources \n"
+printf "5. vanilla-sources \n" 
+printf "6. zen-sources \n"
+printf "7. git-sources \n"
+printf "8. aufs-sources \n"
+printf "9. rt-sources \n"
+printf "10. tuxonice-sources \n"
+printf "11. Skip this selection \n"
 read -r answer
 if [[ $answer -ge "1" ]] && [[ $answer -le "10" ]]; then
-	echo
+	printf "\n"
 	emerge --sync
-	echo
-	echo "Would you like to unmask testing version of the selected kernel? Y/N"
+	printf "\n"
+	printf "Would you like to unmask testing version of the selected kernel? Y/N \n"
 	read -r unmaskAnswer
 fi
 
@@ -139,32 +139,32 @@ elif [[ $answer == "10" ]]; then
 	unmaskKernel "sys-kernel/tuxonice-sources"
 	confUpdate "sys-kernel/tuxonice-sources"
 elif [[ $answer == "11" ]]; then
-	echo "Skipping kernel installation/update..."
+	printf "Skipping kernel installation/update... \n"
+	printf "\n"
 else
-	echo "Error: please choose an option between 1 to 11."
+	printf "Error: please choose an option between 1 to 11. \n"
 	exit 1
 fi
 
-echo
-echo "Listing installed kernel versions..."
+printf "\n"
+printf "Listing installed kernel versions... \n"
 eselect kernel list
 
 for (( ; ; )); do
-	echo
-	echo "Which kernel do you want to use? Type a number: "
+	printf "\n"
+	printf "Which kernel do you want to use? Type a number: \n"
 	read -r inputNumber
 	eselect kernel set "$inputNumber"
 	if [ $? -eq 250 ]; then
-		echo
-		echo "Error: There was no input, re-prompting"
+		printf "\n"
+		printf "Error: There was no input, re-prompting \n"
 	else
 		break
 	fi
 done
 
-echo
-echo "Installing gentoolkit is necessary if hardware detection and/or genkernel kernel build
-options are used. Install? Y/N"
+printf "\n"
+printf "Installing gentoolkit is necessary if hardware detection and/or genkernel kernel build options are used. Install? Y/N \n"
 read -r gentoolkitAnswer
 if [[ $gentoolkitAnswer == "Y" ]] || [[ $gentoolkitAnswer == "y" ]]; then
 	confUpdate "app-portage/gentoolkit"
@@ -176,12 +176,12 @@ if [[ $currentKernel == "*" ]]; then
 fi
 
 for (( ; ; )); do
-	echo
-	echo "Press 1 - Do you want to search the current directory for configs named .config?"
-	echo "Press 2 - Do you want to copy your running kernel config to the new kernel directory?"
-	echo "Press 3 - To skip this part."
-	echo
-	echo "Tip: If you want option 2 but you do not have the config there yet, use another terminal to copy it"
+	printf "\n"
+	printf "Press 1 - Do you want to search the current directory for configs named .config? \n"
+	printf "Press 2 - Do you want to copy your running kernel config to the new kernel directory? \n"
+	printf "Press 3 - To skip this part. \n"
+	printf "\n"
+	printf "Tip: If you want option 2 but you do not have the config there yet, use another terminal to copy it \n"
 	read -r configAnswer
 	if [[ $configAnswer == "1" ]]; then
 		configLocation=$(find . -maxdepth 1 -name '.config*' | tail -n 1)
@@ -208,49 +208,48 @@ for (( ; ; )); do
 			fi	
 		fi
 	elif [[ $configAnswer == "3" ]]; then
-		echo "Skipping copying previous kernel configuration or a custom one..."
+		printf "Skipping copying previous kernel configuration or a custom one... \n"
 	else 
-		echo "Error: Select an option that is the number 1 to 2 or skip"
+		printf "Error: Select an option that is the number 1 to 2 or skip \n"
 		exit 1
 	fi
 	
 	if [ ! -f /usr/src/"$currentKernel"/.config ]; then
-		echo
-		echo "Warning: .config at /usr/src/$currentKernel does not exist - try again or press 3 to skip."
+		printf "\n"
+		printf "Warning: .config at /usr/src/$currentKernel does not exist - try again or press 3 to skip. \n"
 	else
 		break
 	fi
 done
 
-echo
-echo "Would you like to use the package 'kergen' to detect your systems hardware? Y/N
-This updates the .config for the current selected kernel with support for your
-systems hardware that does not have support enabled currently."
+printf "\n"
+printf "Would you like to use the package 'kergen' to detect your systems hardware? Y/N \n"
+printf "This updates the .config for the current selected kernel with support for your systems hardware that does not have support enabled currently. \n"
 read -r answer
 if [[ $answer == "Y" ]] || [[ $answer == "y" ]]; then
 	if [ ! -f /etc/portage/package.use/sys-kernel_kergen~ ]; then
-		echo "sys-kernel/kergen" > /etc/portage/package.keywords/kergen
+		printf "sys-kernel/kergen" > /etc/portage/package.keywords/kergen
 	fi
 	isInstalled "sys-kernel/kergen"
 	kergen -g
 fi
 
-echo
-echo "Press 1 - Compiling using the regular method
-Press 2 - Sakakis build kernel script
-Press 3 - genkernel
-Press 4 - To skip this part."
+printf "\n"
+printf "Press 1 - Compiling using the regular method \n
+Press 2 - Sakakis build kernel script \n
+Press 3 - genkernel \n
+Press 4 - To skip this part. \n"
 read -r answer
 if [[ $answer == "1" ]]; then
-	echo
-	echo "Press 1 to use menuconfig."
-	echo "Press 2 to use gconfig."
-	echo "Press 3 to skip this and go straight to compiling."
+	printf "\n"
+	printf "Press 1 to use menuconfig. \n"
+	printf "Press 2 to use gconfig. \n"
+	printf "Press 3 to skip this and go straight to compiling. \n"
 	read -r answer
-	echo
+	printf "\n"
 	coreTotal=$(cat /proc/cpuinfo | awk '/^processor/{print $3}' | tail -1)
 	coreCount=$((coreTotal + 1))
-	echo "How many CPU cores would you like to compile with? You have: $coreCount available"
+	printf "How many CPU cores would you like to compile with? You have: $coreCount available \n"
 	read -r coreCount
 	coreCount=$((coreCount + 1))
 	
@@ -263,34 +262,34 @@ if [[ $answer == "1" ]]; then
 			currentKernel=$(eselect kernel list | awk '/*/{print $2}')
 			cd /usr/src/"$currentKernel"
 			if [ $? -gt 0 ]; then
-				echo "Error: cannot change directory to /usr/src/$currentKernel - exiting"
+				printf "Error: cannot change directory to /usr/src/$currentKernel - exiting \n"
 				exit 1
 			fi
 		fi
 	fi
 	
-	echo
+	printf "\n"
 	if [[ $answer == "1" ]]; then  
-		echo "Launching make menuconfig..."
+		printf "Launching make menuconfig... \n"
 		make menuconfig
 	elif [[ $answer == "2" ]]; then  
-		echo "Launching make gconfig..."
+		printf "Launching make gconfig... \n"
 		make gconfig
 	elif [[ $answer == "3" ]]; then  
-		echo "Skipping launching a kernel configuration menu, going straight to compiling..."
+		printf "Skipping launching a kernel configuration menu, going straight to compiling... \n"
 	else
-		echo "Error: Please enter the numbers 1 to 3 as your input. Anything else is an invalid option."
+		printf "Error: Please enter the numbers 1 to 3 as your input. Anything else is an invalid option. \n"
 		exit 1
 	fi
-	echo
-	echo "Cleaning directory..."
+	printf "\n"
+	printf "Cleaning directory... \n"
 	make clean
-	echo
-	echo "Starting to build kernel.. please wait..."
+	printf "\n"
+	printf "Starting to build kernel.. please wait... \n"
 	make -j "$coreCount"
 	if [ $? -eq 0 ]; then
-		echo
-		echo "Installing modules and the kernel..."
+		printf "\n"
+		printf "Installing modules and the kernel... \n"
 		make modules_install
 		make install
 		if [ $? -eq 0 ]; then
@@ -298,43 +297,41 @@ if [[ $answer == "1" ]]; then
 		fi
 	fi
 elif [[ $answer == "2" ]]; then
-	echo "Starting to build the kernel..."
+	printf "Starting to build the kernel... \n"
 	buildkernel --ask --verbose
 elif [[ $answer == "3" ]]; then
 	currentKernel=$(eselect kernel list | awk '/*/{print $3}')
 	isInstalled "sys-kernel/genkernel-next"
-	echo
-	echo "Starting to build the kernel..."
-	echo "Notice: This configuration for genkernel only makes and installs the kernel. For additional"
-	echo "options you may need to manually configure the parameters for your usage case. There is an"
-	echo "optional prompt at the end of the compiling to create an initramfs."
-	read -p "Press any key to continue... "
-	echo
-	echo "Press 1 to use menuconfig."
-	echo "Press 2 to use gconfig."
-	echo "Press 3 to skip this and go straight to compiling."
+	printf "\n"
+	printf "Starting to build the kernel... \n"
+	printf "Notice: This configuration for genkernel only makes and installs the kernel. For additional options you may need to manually configure the parameters for your usage case. There is an optional prompt at the end of the compiling to create an initramfs.\n"
+	read -p "Press any key to continue...  \n"
+	printf "\n"
+	printf "Press 1 to use menuconfig. \n"
+	printf "Press 2 to use gconfig. \n"
+	printf "Press 3 to skip this and go straight to compiling. \n"
 	read -r answer
-	echo
+	printf "\n"
 	coreTotal=$(cat /proc/cpuinfo | awk '/^processor/{print $3}' | tail -1)
 	coreCount=$((coreTotal + 1))
-	echo "How many CPU cores would you like to compile with? You have: $coreCount available"
+	printf "How many CPU cores would you like to compile with? You have: $coreCount available \n"
 	read -r coreCount
 	coreCount=$((coreCount + 1))
-	echo
+	printf "\n"
 	if [ ! -f /usr/src/"$currentKernel"/.config ]; then
-		echo "Error: .config at /usr/src/$currentKernel doesn't exist"
-		echo "Continue (press 1) or use generic configuration provided by genkernel (press 2)?"
+		printf "Error: .config at /usr/src/$currentKernel doesn't exist \n"
+		printf "Continue (press 1) or use generic configuration provided by genkernel (press 2)? \n"
 		read -r selectionAnswer
 		if [[ $selectionAnswer == "1" ]]; then  
-			echo "Continuing.."
+			printf "Continuing.. \n"
 		elif [[ $selectionAnswer == "2" ]]; then  
 			genkernel --clean --install all
 		else
-			echo "Error: Invalid selection entered, please enter the numbers 1 or 2 - exiting"
+			printf "Error: Invalid selection entered, please enter the numbers 1 or 2 - exiting \n"
 			exit 1
 		fi
 	fi
-	echo
+	printf "\n"
 	if [[ $answer == "1" ]]; then  
 		genkernel --install --makeopts=-j"$coreCount" --clean --no-mrproper --kernel-config=/usr/src/"$currentKernel"/.config --menuconfig kernel
 		if [ $? -eq 0 ]; then
@@ -351,60 +348,59 @@ elif [[ $answer == "3" ]]; then
 			askInitramfs
 		fi
 	else
-		echo "Error: Please enter the numbers 1 to 3 as your input. Anything else is an invalid option."
+		printf "Error: Please enter the numbers 1 to 3 as your input. Anything else is an invalid option. \n"
 		exit 1
 	fi
 elif [[ $answer == "4" ]]; then
-	echo "Skipping building the kernel..."
+	printf "Skipping building the kernel... \n"
 else
-	echo "Please choose an option between 1 to 4. Anything else is an invalid option."
+	printf "Please choose an option between 1 to 4. Anything else is an invalid option.\n"
 	exit 1
 fi
 
-echo
-echo "Would you like to update your grub.cfg? Y/N"
+printf "\n"
+printf "Would you like to update your grub.cfg? Y/N \n"
 read -r updateGrub
 if [[ $updateGrub == "Y" || $updateGrub == "y" ]]; then		
 	isInstalled "sys-boot/grub:2"
 	isInstalled "sys-boot/os-prober"
-	echo
+	printf "\n"
 	isBootMounted=$(mount | grep /boot)
 	if [[ -z ${isBootMounted} ]]; then
-		echo "Error: /boot is not mounted - mount before attempting to proceed with GRUB installation."
+		printf "Error: /boot is not mounted - mount before attempting to proceed with GRUB installation. \n"
 		exit 1
 	fi
 	
 	if [ ! -d /boot/grub/ ]; then
-		echo "Error: /boot/grub/ directory does not exist. Install grub onto main disk? Y/N"
+		printf "Error: /boot/grub/ directory does not exist. Install grub onto main disk? Y/N \n"
 		read -r installGrub
 		if [[ $installGrub == "Y" || $installGrub == "y" ]]; then
-			echo
-			echo "Is this a BIOS with MBR or BIOS with GPT (press 1) or UEFI with GPT (press 2)?"
+			printf "\n"
+			printf "Is this a BIOS with MBR or BIOS with GPT (press 1) or UEFI with GPT (press 2)? \n"
 			read -r grubType
-			echo
+			printf "\n"
 			lsblk
-			echo
+			printf "\n"
 			if [[ $grubType == "1" ]]; then
-				echo
-				echo "Which disk do you want to install GRUB onto? Ex: /dev/sda"
+				printf "\n"
+				printf "Which disk do you want to install GRUB onto? Ex: /dev/sda \n"
 				read -r whichDisk
 				grub-install "$whichDisk"
-				echo
+				printf "\n"
 			elif [[ $grubType == "2" ]]; then
 				grub-install --efi-directory=/boot/efi
-				echo
+				printf "\n"
 			else
-				echo "Error: Enter a number that is either 1 or 2"
+				printf "Error: Enter a number that is either 1 or 2 \n"
 			fi
 		else
-			echo "User entered: $installGrub - cannot proceed with updating GRUB without installing"
-			echo "it first."
+			printf "User entered: $installGrub - cannot proceed with updating GRUB without installing it first. \n"
 			break
 		fi
 	fi
 	
 	if [[ -z ${grubType} ]]; then
-		echo "Is this a BIOS with MBR or BIOS with GPT (press 1) or UEFI with GPT (press 2)?"
+		printf "Is this a BIOS with MBR or BIOS with GPT (press 1) or UEFI with GPT (press 2)? \n"
 		read -r grubType
 	fi
 	
@@ -423,7 +419,7 @@ if [[ $updateGrub == "Y" || $updateGrub == "y" ]]; then
 			fi
 		fi
 		if [ ! -f /boot/grub/grub.cfg ]; then	
-			echo "Error: grub.cfg does not exist - running mkconfig again to attempt to fix the issue"
+			printf "Error: grub.cfg does not exist - running mkconfig again to attempt to fix the issue \n"
 			grub-mkconfig -o /boot/grub/grub.cfg
 		fi
 	elif [[ $grubType == "2" ]]; then
@@ -433,11 +429,11 @@ if [[ $updateGrub == "Y" || $updateGrub == "y" ]]; then
 		fi
 		
 		if [ ! -f /boot/efi/EFI/GRUB/grub.cfg ]; then	
-			echo "Error: grub.cfg does not exist - running mkconfig again to attempt to fix the issue"
+			printf "Error: grub.cfg does not exist - running mkconfig again to attempt to fix the issue \n"
 			grub-mkconfig -o /boot/efi/EFI/GRUB/grub.cfg
 		fi
 	fi
 fi
 
-echo
-echo "Complete!"
+printf "\n" 
+printf "Complete! \n"
