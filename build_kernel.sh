@@ -10,37 +10,52 @@
 # askInitramfs()
 # Function to ask the user if they also need a initramfs, if yes it will create and install the initramfs.
 askInitramfs() {
-	printf "\n"
-	printf "Do you also need a initramfs? Y/N \n"
-	read -r initramfsAnswer
-	if [[ $initramfsAnswer == "Y" ]] || [[ $initramfsAnswer == "y" ]]; then
-		printf "Standard genkernel initramfs (Press 1) \n"
-		printf "Genkernel initramfs with support for luks, lvm, busybox (Press 2) \n"
-		printf "Generic host-only dracut initramfs (Press 3) \n"
-		read -r initramfsType
-		if [[ $initramfsType == "1" ]]; then
-			isInstalled "sys-kernel/genkernel-next"
-			genkernel --install initramfs
-			if [ $? -gt 0 ]; then
+	local initramfsAnswer=
+	local initramfsType=
+	for (( ; ; )); do
+		printf "\n"
+		printf "Do you also need a initramfs? Y/N \n"
+		read -r initramfsAnswer
+		if [[ $initramfsAnswer == "Y" ]] || [[ $initramfsAnswer == "y" ]]; then
+			printf "Press 1 - Standard genkernel initramfs. \n"
+			printf "Press 2 - Genkernel initramfs with support for luks, lvm, busybox. \n"
+			printf "Press 3 - Generic host-only dracut initramfs. \n"
+			printf "Press 4 - To skip this part. \n"
+			read -r initramfsType
+			if [[ $initramfsType == "1" ]]; then
+				isInstalled "sys-kernel/genkernel-next"
 				genkernel --install initramfs
-			fi
-		elif [[ $initramfsType == "2" ]]; then
-			isInstalled "sys-kernel/genkernel-next"
-			genkernel --luks --lvm --busybox initramfs
-			if [ $? -gt 0 ]; then
+				if [ $? -gt 0 ]; then
+					genkernel --install initramfs
+				fi
+				break
+			elif [[ $initramfsType == "2" ]]; then
+				isInstalled "sys-kernel/genkernel-next"
 				genkernel --luks --lvm --busybox initramfs
+				if [ $? -gt 0 ]; then
+					genkernel --luks --lvm --busybox initramfs
+				fi
+				break
+			elif [[ $initramfsType == "3" ]]; then
+				mkdir -p /etc/portage/package.keywords/
+				printf "sys-kernel/dracut" >> /etc/portage/package.keywords/dracut
+				isInstalled "sys-kernel/dracut"
+				dracut --hostonly '' "$currentKernel"
+				break
+			elif [[ $initramfsType == "4" ]]; then
+				printf "Skipping adding an initramfs.. \n"
+				break
+			else
+				printf "Error: Select an option that is the numeric value of 1 to 4 \n"
+				printf "\n"
 			fi
-		elif [[ $initramfsType == "2" ]]; then
-			mkdir -p /etc/portage/package.keywords/
-			printf "sys-kernel/dracut" >> /etc/portage/package.keywords/dracut
-			isInstalled "sys-kernel/dracut"
-			dracut --hostonly '' "$currentKernel"
+		elif [[ $initramfsAnswer == "N" || $initramfsAnswer == "n" ]]; then
+			printf "Skipping adding an initramfs.. \n"
+			break
 		else
-			printf "Error: Select an option that is the numeric value of 1 to 3 \n"
-			exit 1
+			printf "Error: Invalid selection, enter either Y or N \n"
 		fi
-	fi	
-	
+	done
 }
 
 # confUpdate()
@@ -179,7 +194,8 @@ for (( ; ; )); do
 	printf "\n"
 	printf "Press 1 - Do you want to search the current directory for configs named .config? \n"
 	printf "Press 2 - Do you want to copy your running kernel config to the new kernel directory? \n"
-	printf "Press 3 - To skip this part. \n"
+	printf "Press 3 - Search for a kernel config. \n"
+	printf "Press 4 - To skip this part. \n"
 	printf "\n"
 	printf "Tip: If you want option 2 but you do not have the config there yet, use another terminal to copy it \n"
 	read -r configAnswer
@@ -187,27 +203,29 @@ for (( ; ; )); do
 		configLocation=$(find . -maxdepth 1 -name '.config*' | tail -n 1)
 		pathRemove=${configLocation##*/}
 		cp "$pathRemove" /usr/src/"$currentKernel"/.config
-		if [ $? -gt 0 ]; then
-			configLocation=$(find . -maxdepth 1 -name 'config-*' | tail -n 1)
-			pathRemove=${configLocation##*/}
-			cp "$pathRemove" /usr/src/"$currentKernel"/.config
-		fi
 	elif [[ $configAnswer == "2" ]]; then
 		modprobe configs
 		zcat /proc/config.gz > /usr/src/"$currentKernel"/.config
 		if [ $? -gt 0 ]; then
-			configLocation=$(find /boot/* -name 'config-*' | tail -n 1)
-			cp "$configLocation" /usr/src/"$currentKernel"/.config
-			if [ $? -gt 0 ]; then
-				configLocation=$(find /usr/src/* -name '.config' | tail -n 1)
-				cp "$configLocation" /usr/src/"$currentKernel"/.config
-				if [ $? -gt 0 ]; then
-					configLocation=$(find /usr/src/* -name '.config*' | tail -n 1)
-					cp "$configLocation" /usr/src/"$currentKernel"/.config
-				fi	
-			fi	
+			printf "Error: failed to copy /proc/config.gz to /usr/src/$currentKernel/.config - try another method. \n"
 		fi
 	elif [[ $configAnswer == "3" ]]; then
+		configLocation=$(find /boot/* -name '*config*' | tail -n 1)
+		if [ $? -gt 0 ]; then
+			configLocation=$(find /usr/src/* -name '.config' | tail -n 1)
+			if [ $? -gt 0 ]; then
+				configLocation=$(find /usr/src/* -name '.config*' | tail -n 1)
+			fi	
+		fi	
+		printf "\n"
+		printf "Proceed with using config $configLocation? Y/N \n"
+		read -r kernelConfigAnswer
+		if [[ $kernelConfigAnswer == "Y" ]] || [[ $kernelConfigAnswer == "y" ]]; then
+			cp "$configLocation" /usr/src/"$currentKernel"/.config
+		else
+			printf "Try another option or manually copy a kernel config to /usr/src/$currentKernel. \n"
+		fi
+	elif [[ $configAnswer == "4" ]]; then
 		printf "Skipping copying previous kernel configuration or a custom one... \n"
 	else 
 		printf "Error: Select an option that is the number 1 to 2 or skip \n"
@@ -216,7 +234,7 @@ for (( ; ; )); do
 	
 	if [ ! -f /usr/src/"$currentKernel"/.config ]; then
 		printf "\n"
-		printf "Warning: .config at /usr/src/$currentKernel does not exist - try again or press 3 to skip. \n"
+		printf "Warning: .config at /usr/src/$currentKernel does not exist - try again or press 4 to skip. \n"
 	else
 		break
 	fi
@@ -235,10 +253,10 @@ if [[ $answer == "Y" ]] || [[ $answer == "y" ]]; then
 fi
 
 printf "\n"
-printf "Press 1 - Compiling using the regular method \n
-Press 2 - Sakakis build kernel script \n
-Press 3 - genkernel \n
-Press 4 - To skip this part. \n"
+printf "Press 1 - Compiling using the standard, make method \n"
+printf "Press 2 - Sakakis build kernel script \n"
+printf "Press 3 - genkernel \n"
+printf "Press 4 - To skip this part. \n"
 read -r answer
 if [[ $answer == "1" ]]; then
 	printf "\n"
