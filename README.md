@@ -17,13 +17,23 @@ Features
 - Options of compiling the kernel with the regular make method, Sakakis build kernel script, or Genkernel
 - In all compiling methods you are given the amount of CPU cores available and prompted to select how many to use
 - In the regular make method and Genkernel selections you are given the option of using menuconfig or gconfig for kernel customization
-- Supports updating GRUB config, or if GRUB is not installed installs and walks you through configuration by prompting which disk to install to, etc.
+- Supports updating your GRUB config, or if GRUB is not installed it will be installed and walk you through configuration by prompting which disk to install to, etc.
 - Among other nifty features..
 
 Pictures
 ===
 
-![daulton.ca](https://daulton.ca/lib/exe/fetch.php/bash_script_pictures:build-kernel-00.png?cache=)
+![daulton.ca](https://daulton.ca/lib/exe/fetch.php/bash_script_pictures:build-kernel-01.png?cache=)
+
+> **Note:** 
+> Kernel compilation output cut, of course.
+
+![daulton.ca](https://daulton.ca/lib/exe/fetch.php/bash_script_pictures:build-kernel-02.png?cache=)
+
+> **Note:** 
+> Genkernel initramfs output cut.
+
+![daulton.ca](https://daulton.ca/lib/exe/fetch.php/bash_script_pictures:build-kernel-03.png?cache=)
 
 
 How to use

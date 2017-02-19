@@ -114,6 +114,7 @@ printf "8. aufs-sources \n"
 printf "9. rt-sources \n"
 printf "10. tuxonice-sources \n"
 printf "11. Skip this selection \n"
+printf "\n"
 read -r answer
 if [[ $answer -ge "1" ]] && [[ $answer -le "10" ]]; then
 	printf "\n"
@@ -155,7 +156,6 @@ elif [[ $answer == "10" ]]; then
 	confUpdate "sys-kernel/tuxonice-sources"
 elif [[ $answer == "11" ]]; then
 	printf "Skipping kernel installation/update... \n"
-	printf "\n"
 else
 	printf "Error: please choose an option between 1 to 11. \n"
 	exit 1
@@ -430,6 +430,7 @@ if [[ $updateGrub == "Y" || $updateGrub == "y" ]]; then
 	fi
 	
 	if [[ $grubType == "1" ]]; then
+		printf "\n"
 		grub-mkconfig -o /boot/grub/grub.cfg
 		if [ $? -eq 0 ]; then
 			if [ -f /boot/grub/grub.cfg.new ]; then
@@ -441,6 +442,7 @@ if [[ $updateGrub == "Y" || $updateGrub == "y" ]]; then
 			grub-mkconfig -o /boot/grub/grub.cfg
 		fi
 	elif [[ $grubType == "2" ]]; then
+		printf "\n"
 		grub-mkconfig -o /boot/efi/EFI/GRUB/grub.cfg
 		if [ -f /boot/efi/EFI/GRUB/grub.cfg.new ]; then
 			mv /boot/efi/EFI/GRUB/grub.cfg.new /boot/efi/EFI/GRUB/grub.cfg
