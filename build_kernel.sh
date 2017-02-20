@@ -202,7 +202,7 @@ for (( ; ; )); do
 	printf "Press 3 - Search for a kernel config. \n"
 	printf "Press 4 - To skip this part. \n"
 	printf "\n"
-	printf "Tip: If you want option 2 but you do not have the config there yet, use another terminal to copy it \n"
+	printf "Tip: If you want option 1 but you do not have the config there yet, use another terminal to copy it \n"
 	read -r configAnswer
 	if [[ $configAnswer == "1" ]]; then
 		configLocation=$(find . -maxdepth 1 -name '.config*' | tail -n 1)
@@ -214,8 +214,9 @@ for (( ; ; )); do
 		zcat /proc/config.gz > /usr/src/"$currentKernel"/.config
 		if [ $? -gt 0 ]; then
 			printf "Error: failed to copy /proc/config.gz to /usr/src/$currentKernel/.config - try another method. \n"
+		else
+			break
 		fi
-		break
 	elif [[ $configAnswer == "3" ]]; then
 		configLocation=$(find /boot/* -name '*config*' | tail -n 1)
 		if [ $? -gt 0 ]; then
@@ -229,17 +230,17 @@ for (( ; ; )); do
 		read -r kernelConfigAnswer
 		if [[ $kernelConfigAnswer == "Y" ]] || [[ $kernelConfigAnswer == "y" ]]; then
 			cp "$configLocation" /usr/src/"$currentKernel"/.config
+			break
 		else
 			printf "Try another option or manually copy a kernel config to /usr/src/$currentKernel. \n"
 		fi
-		break
 	elif [[ $configAnswer == "4" ]]; then
 		printf "\n"
-		printf "Skipping copying previous kernel configuration or a custom one... \n"
+		printf "Skipping copying kernel configuration.. \n"
 		break
 	else 
 		printf "\n"
-		printf "Error: Select an option that is the number 1 to 2 or skip \n"
+		printf "Error: Select an option that is the number 1 to 4. \n"
 	fi
 	
 	if [ ! -f /usr/src/"$currentKernel"/.config ]; then
