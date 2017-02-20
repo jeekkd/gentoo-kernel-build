@@ -188,6 +188,11 @@ fi
 currentKernel=$(eselect kernel list | awk '/*/{print $3}')
 if [[ $currentKernel == "*" ]]; then 
 	currentKernel=$(eselect kernel list | awk '/*/{print $2}')
+else
+	printf "\n"
+	printf "Warning: eselect kernel was unset, defaulting to first kernel.. \n"
+	eselect kernel set 1
+	currentKernel=$(eselect kernel list | awk '/*/{print $2}')
 fi
 
 for (( ; ; )); do
@@ -326,7 +331,7 @@ elif [[ $answer == "3" ]]; then
 	printf "\n"
 	printf "Starting to build the kernel... \n"
 	printf "Notice: This configuration for genkernel only makes and installs the kernel. For additional options you may need to manually configure the parameters for your usage case. There is an optional prompt at the end of the compiling to create an initramfs.\n"
-	read -p "Press any key to continue...  \n"
+	read -p "Press any key to continue..."
 	printf "\n"
 	printf "Press 1 to use menuconfig. \n"
 	printf "Press 2 to use gconfig. \n"
@@ -346,7 +351,7 @@ elif [[ $answer == "3" ]]; then
 		if [[ $selectionAnswer == "1" ]]; then  
 			printf "Continuing.. \n"
 		elif [[ $selectionAnswer == "2" ]]; then  
-			genkernel --clean --install all
+			genkernel --clean --install kernel
 		else
 			printf "Error: Invalid selection entered, please enter the numbers 1 or 2 - exiting \n"
 			exit 1
@@ -388,8 +393,8 @@ if [[ $updateGrub == "Y" || $updateGrub == "y" ]]; then
 	printf "\n"
 	isBootMounted=$(mount | grep /boot)
 	if [[ -z ${isBootMounted} ]]; then
-		printf "Error: /boot is not mounted - mount before attempting to proceed with GRUB installation. \n"
-		exit 1
+		printf "Warning: /boot is not mounted - mount before attempting to proceed with GRUB installation. \n"
+		read -p "Press any key to continue..."
 	fi
 	
 	if [ ! -d /boot/grub/ ]; then
