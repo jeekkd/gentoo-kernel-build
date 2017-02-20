@@ -203,12 +203,14 @@ for (( ; ; )); do
 		configLocation=$(find . -maxdepth 1 -name '.config*' | tail -n 1)
 		pathRemove=${configLocation##*/}
 		cp "$pathRemove" /usr/src/"$currentKernel"/.config
+		break
 	elif [[ $configAnswer == "2" ]]; then
 		modprobe configs
 		zcat /proc/config.gz > /usr/src/"$currentKernel"/.config
 		if [ $? -gt 0 ]; then
 			printf "Error: failed to copy /proc/config.gz to /usr/src/$currentKernel/.config - try another method. \n"
 		fi
+		break
 	elif [[ $configAnswer == "3" ]]; then
 		configLocation=$(find /boot/* -name '*config*' | tail -n 1)
 		if [ $? -gt 0 ]; then
@@ -225,18 +227,19 @@ for (( ; ; )); do
 		else
 			printf "Try another option or manually copy a kernel config to /usr/src/$currentKernel. \n"
 		fi
+		break
 	elif [[ $configAnswer == "4" ]]; then
+		printf "\n"
 		printf "Skipping copying previous kernel configuration or a custom one... \n"
+		break
 	else 
+		printf "\n"
 		printf "Error: Select an option that is the number 1 to 2 or skip \n"
-		exit 1
 	fi
 	
 	if [ ! -f /usr/src/"$currentKernel"/.config ]; then
 		printf "\n"
 		printf "Warning: .config at /usr/src/$currentKernel does not exist - try again or press 4 to skip. \n"
-	else
-		break
 	fi
 done
 
@@ -245,7 +248,7 @@ printf "Would you like to use the package 'kergen' to detect your systems hardwa
 printf "This updates the .config for the current selected kernel with support for your systems hardware that does not have support enabled currently. \n"
 read -r answer
 if [[ $answer == "Y" ]] || [[ $answer == "y" ]]; then
-	if [ ! -f /etc/portage/package.use/sys-kernel_kergen~ ]; then
+	if [[ ! -f /etc/portage/package.use/sys-kernel_kergen~ ]] && [[ ! -f /etc/portage/package.keywords/kergen ]]; then
 		printf "sys-kernel/kergen" > /etc/portage/package.keywords/kergen
 	fi
 	isInstalled "sys-kernel/kergen"
