@@ -8,16 +8,16 @@ installing, upgrading, or trying a new kernel.
 Features
 ===
 
-- A selection of kernels to choose from including gentoo-sources, hardened-sources, vanilla-sources, pf-sources, etc
-- The option to choose to unmask testing versions of your selected kernel
-- Handles the eselect kernel set by giving you a list of installed kernels to select in a easy manner
-- If dependencies are not installed you are prompted if you would like the script to install them
-- The option to choose to copy a kernel .config from the scripts running directory to the selected kernels location or using the kernel from the running system
+- A selection of kernels including gentoo-sources, hardened-sources, vanilla-sources, pf-sources, etc
+- The option to unmask testing versions of your selected kernel
+- Handles the eselect kernel set by giving a list of installed kernels to select in an easy manner
+- If dependencies are not installed, you are prompted for the script to install them
+- The option to copy a kernel .config from the scripts running directory to the selected kernels location or using the kernel from the running system
 - Makes use of kergen for enabling hardware support for the currently running system in the selected kernel
 - Options of compiling the kernel with the regular make method, Sakakis build kernel script, or Genkernel
-- In all compiling methods you are given the amount of CPU cores available and prompted to select how many to use
+- In all compiling methods, you are given the amount of CPU cores available and prompted to select how many to use
 - In the regular make method and Genkernel selections you are given the option of using menuconfig or gconfig for kernel customization
-- Supports updating your GRUB config, or if GRUB is not installed it will be installed and walk you through configuration by prompting which disk to install to, etc.
+- Supports updating your GRUB config. If GRUB is not installed it will be, walking you through configuration by prompting which disk to install to, etc.
 - Among other nifty features..
 
 Pictures
