@@ -74,7 +74,8 @@ confUpdate() {
 # Example: isInstalled "sys-kernel/genkernel-next" 
 # If the package is not installed it will call confUpdate and install the package
 isInstalled() {
-	package=$1
+	local package=$1
+	local packageTest=
     packageTest=$(equery -q list "$package")
     if [[ -z ${packageTest} ]]; then
 		confUpdate "$package"
@@ -92,10 +93,22 @@ control_c() {
 # unmaskKernel() 
 # Unmask the users selected kernel so unstable versions may be installed
 unmaskKernel() {
+	local unmaskAnswer=
+	local kernelName=
 	if [[ $unmaskAnswer == "Y" ]] || [[ $unmaskAnswer == "y" ]]; then
 		kernelName=$(printf "$1" | cut -f 2 -d "/")	
 		mkdir -p /etc/portage/package.keywords/
 		printf "$1\n" > /etc/portage/package.keywords/"$kernelName"
+	fi
+}
+
+# ifSuccessBreak()
+# If the action directly occuring before the function is called is successful, break out of
+# the loop.
+ifSuccessBreak() {
+	if [ $? -eq 0 ]; then
+		printf "\n"
+		break
 	fi
 }
 
@@ -208,7 +221,7 @@ for (( ; ; )); do
 		configLocation=$(find . -maxdepth 1 -name '.config*' | tail -n 1)
 		pathRemove=${configLocation##*/}
 		cp "$pathRemove" /usr/src/"$currentKernel"/.config
-		break
+		ifSuccessBreak
 	elif [[ $configAnswer == "2" ]]; then
 		modprobe configs
 		zcat /proc/config.gz > /usr/src/"$currentKernel"/.config
@@ -230,7 +243,7 @@ for (( ; ; )); do
 		read -r kernelConfigAnswer
 		if [[ $kernelConfigAnswer == "Y" ]] || [[ $kernelConfigAnswer == "y" ]]; then
 			cp "$configLocation" /usr/src/"$currentKernel"/.config
-			break
+			ifSuccessBreak
 		else
 			printf "Try another option or manually copy a kernel config to /usr/src/$currentKernel. \n"
 		fi
@@ -271,7 +284,8 @@ if [[ $answer == "1" ]]; then
 	printf "\n"
 	printf "Press 1 to use menuconfig. \n"
 	printf "Press 2 to use gconfig. \n"
-	printf "Press 3 to skip this and go straight to compiling. \n"
+	printf "Press 3 to use silentoldconfig. \n"
+	printf "Press 4 to skip this and go straight to compiling. \n"
 	read -r answer
 	printf "\n"
 	coreTotal=$(cat /proc/cpuinfo | awk '/^processor/{print $3}' | tail -1)
@@ -294,20 +308,27 @@ if [[ $answer == "1" ]]; then
 			fi
 		fi
 	fi
-	
-	printf "\n"
-	if [[ $answer == "1" ]]; then  
-		printf "Launching make menuconfig... \n"
-		make menuconfig
-	elif [[ $answer == "2" ]]; then  
-		printf "Launching make gconfig... \n"
-		make gconfig
-	elif [[ $answer == "3" ]]; then  
-		printf "Skipping launching a kernel configuration menu, going straight to compiling... \n"
-	else
-		printf "Error: Please enter the numbers 1 to 3 as your input. Anything else is an invalid option. \n"
-		exit 1
-	fi
+	for (( ; ; )); do
+		printf "\n"
+		if [[ $answer == "1" ]]; then  
+			printf "Launching make menuconfig... \n"
+			make menuconfig
+			ifSuccessBreak
+		elif [[ $answer == "2" ]]; then  
+			printf "Launching make gconfig... \n"
+			make gconfig
+			ifSuccessBreak
+		elif [[ $answer == "3" ]]; then  
+			printf "Launching make silentoldconfig... \n"
+			make silentoldconfig
+			ifSuccessBreak
+		elif [[ $answer == "4" ]]; then  
+			printf "Skipping launching a kernel configuration menu, going straight to compiling... \n"
+			ifSuccessBreak
+		else
+			printf "Error: Please enter the numbers 1 to 4 as your input. Anything else is an invalid option. \n"
+		fi
+	done
 	printf "\n"
 	printf "Cleaning directory... \n"
 	make clean
@@ -344,40 +365,51 @@ elif [[ $answer == "3" ]]; then
 	printf "How many CPU cores would you like to compile with? You have: $coreCount available \n"
 	read -r coreCount
 	coreCount=$((coreCount + 1))
+	
 	printf "\n"
 	if [ ! -f /usr/src/"$currentKernel"/.config ]; then
-		printf "Error: .config at /usr/src/$currentKernel doesn't exist \n"
-		printf "Continue (press 1) or use generic configuration provided by genkernel (press 2)? \n"
-		read -r selectionAnswer
-		if [[ $selectionAnswer == "1" ]]; then  
-			printf "Continuing.. \n"
-		elif [[ $selectionAnswer == "2" ]]; then  
-			genkernel --clean --install kernel
-		else
-			printf "Error: Invalid selection entered, please enter the numbers 1 or 2 - exiting \n"
-			exit 1
-		fi
+		for (( ; ; )); do
+			printf "Error: .config at /usr/src/$currentKernel doesn't exist \n"
+			printf "\n"
+			printf "Press 1 to continue anyway \n"
+			printf "Press 2 to use generic configuration provided by genkernel \n"
+			read -r selectionAnswer
+			if [[ $selectionAnswer == "1" ]]; then  
+				printf "Continuing.. \n"
+				break
+			elif [[ $selectionAnswer == "2" ]]; then  
+				genkernel --clean --install kernel
+				ifSuccessBreak
+			else
+				printf "Error: Please enter the numbers 1 to 2 as your input. Anything else is an invalid option. \n"
+			fi
+		done
 	fi
+	
 	printf "\n"
-	if [[ $answer == "1" ]]; then  
-		genkernel --install --makeopts=-j"$coreCount" --clean --no-mrproper --kernel-config=/usr/src/"$currentKernel"/.config --menuconfig kernel
-		if [ $? -eq 0 ]; then
-			askInitramfs
+	for (( ; ; )); do
+		if [[ $answer == "1" ]]; then  
+			genkernel --install --makeopts=-j"$coreCount" --clean --no-mrproper --kernel-config=/usr/src/"$currentKernel"/.config --menuconfig kernel
+			if [ $? -eq 0 ]; then
+				askInitramfs
+				ifSuccessBreak
+			fi
+		elif [[ $answer == "2" ]]; then  
+			genkernel --install --makeopts=-j"$coreCount" --clean --no-mrproper --kernel-config=/usr/src/"$currentKernel"/.config --gconfig kernel
+			if [ $? -eq 0 ]; then
+				askInitramfs
+				ifSuccessBreak
+			fi
+		elif [[ $answer == "3" ]]; then  
+			genkernel --install --makeopts=-j"$coreCount" --clean --no-mrproper --kernel-config=/usr/src/"$currentKernel"/.config kernel
+			if [ $? -eq 0 ]; then
+				askInitramfs
+				ifSuccessBreak
+			fi
+		else
+			printf "Error: Please enter the numbers 1 to 3 as your input. Anything else is an invalid option. \n"
 		fi
-	elif [[ $answer == "2" ]]; then  
-		genkernel --install --makeopts=-j"$coreCount" --clean --no-mrproper --kernel-config=/usr/src/"$currentKernel"/.config --gconfig kernel
-		if [ $? -eq 0 ]; then
-			askInitramfs
-		fi
-	elif [[ $answer == "3" ]]; then  
-		genkernel --install --makeopts=-j"$coreCount" --clean --no-mrproper --kernel-config=/usr/src/"$currentKernel"/.config kernel
-		if [ $? -eq 0 ]; then
-			askInitramfs
-		fi
-	else
-		printf "Error: Please enter the numbers 1 to 3 as your input. Anything else is an invalid option. \n"
-		exit 1
-	fi
+	done
 elif [[ $answer == "4" ]]; then
 	printf "Skipping building the kernel... \n"
 else
