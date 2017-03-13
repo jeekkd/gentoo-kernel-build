@@ -49,7 +49,7 @@ git clone https://github.com/jeekkd/gentoo-kernel-build.git && cd gentoo-kernel-
 executable to root and your user
 
 ```
-sudo chmod 770 build_kernel.sh
+sudo chmod 770 build-kernel.sh
 ```
 
 > **Note:** 
@@ -59,6 +59,6 @@ sudo chmod 770 build_kernel.sh
 - Now you launch the script like so
 
 ```
-sudo sh build_kernel.sh
+sudo sh build-kernel.sh
 ```
 
