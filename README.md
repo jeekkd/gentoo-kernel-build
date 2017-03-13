@@ -59,6 +59,6 @@ sudo chmod 770 build_kernel.sh
 - Now you launch the script like so
 
 ```
-sudo bash build_kernel.sh
+sudo sh build_kernel.sh
 ```
 
