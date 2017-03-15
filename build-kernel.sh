@@ -115,7 +115,7 @@ printf "\n"
 read -r kernelSelection
 if [ "$kernelSelection" -ge "1" ] && [ "$kernelSelection" -le "10" ]; then
 	printf "\n"
-	#emerge --sync
+	emerge --sync
 	printf "\n"
 	printf "Would you like to unmask testing version of the selected kernel? Y/N \n"
 	read -r unmaskAnswer
