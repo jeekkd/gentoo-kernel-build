@@ -10,7 +10,7 @@
 # askInitramfs()
 # Function to ask the user if they also need a initramfs, if yes it will create and install the initramfs.
 askInitramfs() {
-	for (( ; ; )); do
+	while true; do
 		printf "\n"
 		printf "Do you also need a initramfs? Y/N \n"
 		read -r initramfsAnswer
@@ -59,12 +59,12 @@ askInitramfs() {
 # confUpdate()
 # if a configuration file needs to be updated during an emerge it will update it then retry the emerge
 confUpdate() {
-	emerge --autounmask-write -q $1
+	emerge --autounmask-write -q $@
 	if [ $? -eq 1 ]; then
 		etc-update --automode -5
-		emerge --autounmask-write -q $1
+		emerge --autounmask-write -q $@
 	fi
-	env-update && . /etc/profile
+	env-update && source /etc/profile
 }
 
 # isInstalled
@@ -72,9 +72,10 @@ confUpdate() {
 # Example: isInstalled "sys-kernel/genkernel-next" 
 # If the package is not installed it will call confUpdate and install the package
 isInstalled() {
-    packageTest=$(equery -q list "$1")
+	package=$1
+    packageTest=$(equery -q list "$package")
     if [ -z ${packageTest} ]; then
-		confUpdate "$packageTest"
+		confUpdate "$package"
     fi
 }
 
@@ -98,71 +99,84 @@ ifSuccessBreak() {
 	fi
 }
 
-printf "Select the kernel you'd like to install/update: \n"
-printf "\n"
-printf "1. gentoo-sources \n"
-printf "2. hardened-sources \n"
-printf "3. ck-sources \n"
-printf "4. pf-sources \n"
-printf "5. vanilla-sources \n" 
-printf "6. zen-sources \n"
-printf "7. git-sources \n"
-printf "8. aufs-sources \n"
-printf "9. rt-sources \n"
-printf "10. tuxonice-sources \n"
-printf "11. Skip this selection \n"
-printf "\n"
-read -r kernelSelection
-if [ "$kernelSelection" -ge "1" ] && [ "$kernelSelection" -le "10" ]; then
+while true; do
 	printf "\n"
-	emerge --sync
+	printf "Select the kernel you'd like to install/update: \n"
 	printf "\n"
-	printf "Would you like to unmask testing version of the selected kernel? Y/N \n"
-	read -r unmaskAnswer
-fi
+	printf "1. gentoo-sources \n"
+	printf "2. hardened-sources \n"
+	printf "3. ck-sources \n"
+	printf "4. pf-sources \n"
+	printf "5. vanilla-sources \n" 
+	printf "6. zen-sources \n"
+	printf "7. git-sources \n"
+	printf "8. aufs-sources \n"
+	printf "9. rt-sources \n"
+	printf "10. tuxonice-sources \n"
+	printf "11. Skip this selection \n"
+	printf "\n"
+	read -r kernelSelection
+	if [ "$kernelSelection" -ge "1" ] && [ "$kernelSelection" -le "10" ]; then
+		printf "\n"
+		emerge --sync
+		printf "\n"
+		printf "Would you like to unmask testing version of the selected kernel? Y/N \n"
+		read -r unmaskAnswer
+	fi
 
-if [ "$kernelSelection" = "1" ]; then
-	unmaskKernel "sys-kernel/gentoo-sources"
-	confUpdate "sys-kernel/gentoo-sources"
-elif [ "$kernelSelection" = "2" ]; then
-	unmaskKernel "sys-kernel/hardened-sources"
-	confUpdate "sys-kernel/hardened-sources"
-elif [ "$kernelSelection" = "3" ]; then
-	unmaskKernel "sys-kernel/ck-sources"
-	confUpdate "sys-kernel/ck-sources"
-elif [ "$kernelSelection" = "4" ]; then
-	unmaskKernel "sys-kernel/pf-sources"
-	confUpdate "sys-kernel/pf-sources"
-elif [ "$kernelSelection" = "5" ]; then
-	unmaskKernel "sys-kernel/vanilla-sources"
-	confUpdate "sys-kernel/vanilla-sources"
-elif [ "$kernelSelection" = "6" ]; then
-	unmaskKernel "sys-kernel/zen-sources"
-	confUpdate "sys-kernel/zen-sources"
-elif [ "$kernelSelection" = "7" ]; then
-	unmaskKernel "sys-kernel/git-sources"
-	confUpdate "sys-kernel/git-sources"
-elif [ "$kernelSelection" = "8" ]; then
-	unmaskKernel "sys-kernel/aufs-sources"
-	confUpdate "sys-kernel/aufs-sources"
-elif [ "$kernelSelection" = "9" ]; then
-	unmaskKernel "sys-kernel/rt-sources"
-	confUpdate "sys-kernel/rt-sources"
-elif [ "$kernelSelection" = "10" ]; then
-	unmaskKernel "sys-kernel/tuxonice-sources"
-	confUpdate "sys-kernel/tuxonice-sources"
-elif [ "$kernelSelection" = "11" ]; then
-	printf "Skipping kernel installation/update... \n"
-else
-	printf "Error: please choose an option between 1 to 11. \n"
-	exit 1
-fi
+	if [ "$kernelSelection" = "1" ]; then
+		unmaskKernel "sys-kernel/gentoo-sources"
+		confUpdate "sys-kernel/gentoo-sources"
+		ifSuccessBreak
+	elif [ "$kernelSelection" = "2" ]; then
+		unmaskKernel "sys-kernel/hardened-sources"
+		confUpdate "sys-kernel/hardened-sources"
+		ifSuccessBreak
+	elif [ "$kernelSelection" = "3" ]; then
+		unmaskKernel "sys-kernel/ck-sources"
+		confUpdate "sys-kernel/ck-sources"
+		ifSuccessBreak
+	elif [ "$kernelSelection" = "4" ]; then
+		unmaskKernel "sys-kernel/pf-sources"
+		confUpdate "sys-kernel/pf-sources"
+		ifSuccessBreak
+	elif [ "$kernelSelection" = "5" ]; then
+		unmaskKernel "sys-kernel/vanilla-sources"
+		confUpdate "sys-kernel/vanilla-sources"
+		ifSuccessBreak
+	elif [ "$kernelSelection" = "6" ]; then
+		unmaskKernel "sys-kernel/zen-sources"
+		confUpdate "sys-kernel/zen-sources"
+		ifSuccessBreak
+	elif [ "$kernelSelection" = "7" ]; then
+		unmaskKernel "sys-kernel/git-sources"
+		confUpdate "sys-kernel/git-sources"
+		ifSuccessBreak
+	elif [ "$kernelSelection" = "8" ]; then
+		unmaskKernel "sys-kernel/aufs-sources"
+		confUpdate "sys-kernel/aufs-sources"
+		ifSuccessBreak
+	elif [ "$kernelSelection" = "9" ]; then
+		unmaskKernel "sys-kernel/rt-sources"
+		confUpdate "sys-kernel/rt-sources"
+		ifSuccessBreak
+	elif [ "$kernelSelection" = "10" ]; then
+		unmaskKernel "sys-kernel/tuxonice-sources"
+		confUpdate "sys-kernel/tuxonice-sources"
+		ifSuccessBreak
+	elif [ "$kernelSelection" = "11" ]; then
+		printf "Skipping kernel installation/update... \n"
+		ifSuccessBreak
+	else
+		printf "Error: please choose an option between 1 to 11. \n"
+	fi
+done
 
 printf "\n"
 printf "Listing installed kernel versions... \n"
 eselect kernel list
 
-for (( ; ; )); do
+while true; do
 	printf "\n"
 	printf "Which kernel do you want to use? Type a number: \n"
 	read -r inputNumber
@@ -192,7 +206,7 @@ else
 	currentKernel=$(eselect kernel list | awk '/*/{print $2}')
 fi
 
-for (( ; ; )); do
+while true; do
 	printf "\n"
 	printf "Press 1 - Do you want to search the current directory for configs named .config? \n"
 	printf "Press 2 - Do you want to copy your running kernel config to the new kernel directory? \n"
@@ -292,7 +306,7 @@ if [ "$compileMethod" = "1" ]; then
 			fi
 		fi
 	fi
-	for (( ; ; )); do
+	while true; do
 		printf "\n"
 		if [ "$configTypeAnswer" = "1" ]; then  
 			printf "Launching make menuconfig... \n"
@@ -366,6 +380,31 @@ elif [ "$compileMethod" = "3" ]; then
 				break
 			elif [ "$selectionAnswer" = "2" ]; then  
 				genkernel --clean --install kernel
+				printf "\n"
+				while true; do
+					if [ "$configTypeAnswer" = "1" ]; then  
+						genkernel --install --makeopts=-j"$coreCount" --clean --no-mrproper --menuconfig kernel
+						if [ $? -eq 0 ]; then
+							askInitramfs
+							ifSuccessBreak
+						fi
+					elif [ "$configTypeAnswer" = "2" ]; then  
+						genkernel --install --makeopts=-j"$coreCount" --clean --no-mrproper --gconfig kernel
+						if [ $? -eq 0 ]; then
+							askInitramfs
+							ifSuccessBreak
+						fi
+					elif [ "$configTypeAnswer" = "3" ]; then  
+						genkernel --install --makeopts=-j"$coreCount" --clean --no-mrproper kernel
+						if [ $? -eq 0 ]; then
+							askInitramfs
+							ifSuccessBreak
+						fi
+					else
+						printf "Error: Please enter the numbers 1 to 3 as your input. Anything else is an invalid option. \n"
+					fi
+				done
+				
 				ifSuccessBreak
 			else
 				printf "Error: Please enter the numbers 1 to 2 as your input. Anything else is an invalid option. \n"
@@ -374,7 +413,7 @@ elif [ "$compileMethod" = "3" ]; then
 	fi
 	
 	printf "\n"
-	for (( ; ; )); do
+	while true; do
 		if [ "$configTypeAnswer" = "1" ]; then  
 			genkernel --install --makeopts=-j"$coreCount" --clean --no-mrproper --kernel-config=/usr/src/"$currentKernel"/.config --menuconfig kernel
 			if [ $? -eq 0 ]; then
