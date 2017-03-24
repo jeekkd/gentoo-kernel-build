@@ -15,11 +15,21 @@ askInitramfs() {
 		printf "Do you also need a initramfs? Y/N \n"
 		read -r initramfsAnswer
 		if [ "$initramfsAnswer" = "Y" ] || [ "$initramfsAnswer" = "y" ]; then
-			printf "Press 1 - Standard genkernel initramfs. \n"
-			printf "Press 2 - Genkernel initramfs with support for luks, lvm, busybox. \n"
-			printf "Press 3 - Generic host-only dracut initramfs. \n"
-			printf "Press 4 - To skip this part. \n"
-			read -r initramfsType
+			while true; do
+				printf "Press 1 - Standard genkernel initramfs. \n"
+				printf "Press 2 - Genkernel initramfs with support for luks, lvm, busybox. \n"
+				printf "Press 3 - Generic host-only dracut initramfs. \n"
+				printf "Press 4 - To skip this part. \n"
+				read -r initramfsType
+				if [ "$initramfsType" -gt "0" ] && [ "$initramfsType" -lt "5" ]; then
+					printf "\n"
+					break
+				else
+					printf "Error: Please enter the numbers 1 to 4 as your input. Anything else is an invalid option. \n"
+					printf "\n"
+				fi
+			done
+			
 			if [ "$initramfsType" = "1" ]; then
 				isInstalled "sys-kernel/genkernel-next"
 				genkernel --install initramfs
@@ -43,9 +53,6 @@ askInitramfs() {
 			elif [ "$initramfsType" = "4" ]; then
 				printf "Skipping adding an initramfs.. \n"
 				break
-			else
-				printf "Error: Select an option that is the numeric value of 1 to 4 \n"
-				printf "\n"
 			fi
 		elif [ "$initramfsAnswer" = "N" ] || [ "$initramfsAnswer" = "n" ]; then
 			printf "Skipping adding an initramfs.. \n"
@@ -172,11 +179,10 @@ while true; do
 	fi
 done
 
-printf "\n"
-printf "Listing installed kernel versions... \n"
-eselect kernel list
-
 while true; do
+	printf "\n"
+	printf "Listing installed kernel versions... \n"
+	eselect kernel list
 	printf "\n"
 	printf "Which kernel do you want to use? Type a number: \n"
 	read -r inputNumber
@@ -189,12 +195,22 @@ while true; do
 	fi
 done
 
-printf "\n"
-printf "Installing gentoolkit is necessary if hardware detection and/or genkernel kernel build options are used. Install? Y/N \n"
-read -r gentoolkitAnswer
-if [ "$gentoolkitAnswer" = "Y" ] || [ "$gentoolkitAnswer" = "y" ]; then
-	confUpdate "app-portage/gentoolkit"
-fi
+while true; do
+	printf "\n"
+	printf "Installing gentoolkit is necessary if hardware detection and/or genkernel kernel build options are used. Install? Y/N \n"
+	read -r gentoolkitAnswer
+	if [ "$gentoolkitAnswer" = "Y" ] || [ "$gentoolkitAnswer" = "y" ]; then
+		confUpdate "app-portage/gentoolkit"
+		ifSuccessBreak
+	elif [ "$gentoolkitAnswer" = "N" ] || [ "$gentoolkitAnswer" = "n" ]; then
+		printf "\n"
+		printf "Skipping gentoolkit installation.. \n"
+		break
+	else
+		printf "\n"
+		printf "Error: Invalid selection, enter either Y or N \n"
+	fi
+done
 
 currentKernel=$(eselect kernel list | awk '/*/{print $3}')
 if [ "$currentKernel" = "*" ]; then 
@@ -260,31 +276,58 @@ while true; do
 	fi
 done
 
-printf "\n"
-printf "Would you like to use the package 'kergen' to detect your systems hardware? Y/N \n"
-printf "This updates the .config for the current selected kernel with support for your systems hardware that does not have support enabled currently. \n"
-read -r kergenAnswer
-if [ "$kergenAnswer" = "Y" ] || [ "$kergenAnswer" = "y" ]; then
-	if [ ! -f /etc/portage/package.use/sys-kernel_kergen~ ] && [ ! -f /etc/portage/package.keywords/kergen ]; then
-		printf "sys-kernel/kergen" > /etc/portage/package.keywords/kergen
-	fi
-	isInstalled "sys-kernel/kergen"
-	kergen -g
-fi
-
-printf "\n"
-printf "Press 1 - Compiling using the standard, make method \n"
-printf "Press 2 - Sakakis build kernel script \n"
-printf "Press 3 - genkernel \n"
-printf "Press 4 - To skip this part. \n"
-read -r compileMethod
-if [ "$compileMethod" = "1" ]; then
+while true; do
 	printf "\n"
-	printf "Press 1 to use menuconfig. \n"
-	printf "Press 2 to use gconfig. \n"
-	printf "Press 3 to use silentoldconfig. \n"
-	printf "Press 4 to skip this and go straight to compiling. \n"
-	read -r configTypeAnswer
+	printf "Would you like to use the package 'kergen' to detect your systems hardware? Y/N \n"
+	printf "This updates the .config for the current selected kernel with support for your systems hardware that does not have support enabled currently. \n"
+	read -r kergenAnswer
+	if [ "$kergenAnswer" = "Y" ] || [ "$kergenAnswer" = "y" ]; then
+		if [ ! -f /etc/portage/package.use/sys-kernel_kergen~ ] && [ ! -f /etc/portage/package.keywords/kergen ]; then
+			printf "sys-kernel/kergen" > /etc/portage/package.keywords/kergen
+		fi
+		isInstalled "sys-kernel/kergen"
+		kergen -g
+		break
+	elif [ "$kergenAnswer" = "N" ] || [ "$kergenAnswer" = "n" ]; then
+		printf "\n"
+		printf "Skipping using kergen.. \n"
+		break
+	else
+		printf "\n"
+		printf "Error: Invalid selection, enter either Y or N \n"
+	fi
+done
+
+while true; do
+	printf "\n"
+	printf "Press 1 - Compiling using the standard, make method \n"
+	printf "Press 2 - Sakakis build kernel script \n"
+	printf "Press 3 - Genkernel \n"
+	printf "Press 4 - To skip this part. \n"
+	read -r compileMethod
+	if [ "$compileMethod" -gt "0" ] && [ "$compileMethod" -lt "5" ]; then
+		printf "\n"
+		break
+	else
+		printf "Error: Please enter the numbers 1 to 4 as your input. Anything else is an invalid option. \n"
+	fi
+done
+	
+if [ "$compileMethod" = "1" ]; then
+	while true; do
+		printf "\n"
+		printf "Press 1 to use menuconfig. \n"
+		printf "Press 2 to use gconfig. \n"
+		printf "Press 3 to use silentoldconfig. \n"
+		printf "Press 4 to skip this and go straight to compiling. \n"
+		read -r configTypeAnswer
+		if [ "$configTypeAnswer" -gt "0" ] && [ "$configTypeAnswer" -lt "5" ]; then
+			printf "\n"
+			break
+		else
+			printf "Error: Please enter the numbers 1 to 4 as your input. Anything else is an invalid option. \n"
+		fi
+	done
 	printf "\n"
 	coreTotal=$(cat /proc/cpuinfo | awk '/^processor/{print $3}' | tail -1)
 	coreCount=$((coreTotal + 1))
@@ -306,27 +349,23 @@ if [ "$compileMethod" = "1" ]; then
 			fi
 		fi
 	fi
-	while true; do
-		printf "\n"
-		if [ "$configTypeAnswer" = "1" ]; then  
-			printf "Launching make menuconfig... \n"
-			make menuconfig
-			ifSuccessBreak
-		elif [ "$configTypeAnswer" = "2" ]; then  
-			printf "Launching make gconfig... \n"
-			make gconfig
-			ifSuccessBreak
-		elif [ "$configTypeAnswer" = "3" ]; then  
-			printf "Launching make silentoldconfig... \n"
-			make silentoldconfig
-			ifSuccessBreak
-		elif [ "$configTypeAnswer" = "4" ]; then  
-			printf "Skipping launching a kernel configuration menu, going straight to compiling... \n"
-			ifSuccessBreak
-		else
-			printf "Error: Please enter the numbers 1 to 4 as your input. Anything else is an invalid option. \n"
-		fi
-	done
+	printf "\n"
+	if [ "$configTypeAnswer" = "1" ]; then  
+		printf "Launching make menuconfig... \n"
+		make menuconfig
+		ifSuccessBreak
+	elif [ "$configTypeAnswer" = "2" ]; then  
+		printf "Launching make gconfig... \n"
+		make gconfig
+		ifSuccessBreak
+	elif [ "$configTypeAnswer" = "3" ]; then  
+		printf "Launching make silentoldconfig... \n"
+		make silentoldconfig
+		ifSuccessBreak
+	elif [ "$configTypeAnswer" = "4" ]; then  
+		printf "Skipping launching a kernel configuration menu, going straight to compiling... \n"
+		ifSuccessBreak
+	fi	
 	printf "\n"
 	printf "Cleaning directory... \n"
 	make clean
@@ -353,14 +392,23 @@ elif [ "$compileMethod" = "3" ]; then
 	isInstalled "sys-kernel/genkernel-next"
 	printf "\n"
 	printf "Starting to build the kernel... \n"
+	printf "\n"
 	printf "Notice: This configuration for genkernel only makes and installs the kernel. For additional options you may need to manually configure the parameters for your usage case. There is an optional prompt at the end of the compiling to create an initramfs.\n"
 	read -p "Press any key to continue..."
-	printf "\n"
-	printf "Press 1 to use menuconfig. \n"
-	printf "Press 2 to use gconfig. \n"
-	printf "Press 3 to skip this and go straight to compiling. \n"
-	read -r configTypeAnswer
-	printf "\n"
+	while true; do
+		printf "\n"
+		printf "Press 1 to use menuconfig. \n"
+		printf "Press 2 to use gconfig. \n"
+		printf "Press 3 to skip this and go straight to compiling. \n"
+		read -r configTypeAnswer
+		if [ "$configTypeAnswer" -gt "0" ] && [ "$configTypeAnswer" -lt "4" ]; then
+			printf "\n"
+			break
+		else
+			printf "\n"
+			printf "Error: Please enter the numbers 1 to 3 as your input. Anything else is an invalid option. \n"
+		fi
+	done	
 	coreTotal=$(cat /proc/cpuinfo | awk '/^processor/{print $3}' | tail -1)
 	coreCount=$((coreTotal + 1))
 	printf "How many CPU cores would you like to compile with? You have: $coreCount available \n"
@@ -369,16 +417,23 @@ elif [ "$compileMethod" = "3" ]; then
 	
 	printf "\n"
 	if [ ! -f /usr/src/"$currentKernel"/.config ]; then
-		for (( ; ; )); do
+		while true; do
+			printf "\n"
 			printf "Error: .config at /usr/src/$currentKernel doesn't exist \n"
 			printf "\n"
 			printf "Press 1 to continue anyway \n"
 			printf "Press 2 to use generic configuration provided by genkernel \n"
 			read -r selectionAnswer
-			if [ "$selectionAnswer" = "1" ]; then  
+			if [ "$selectionAnswer" -gt "0" ] && [ "$selectionAnswer" -lt "3" ]; then
 				printf "Continuing.. \n"
 				break
-			elif [ "$selectionAnswer" = "2" ]; then  
+			else
+				printf "\n"
+				printf "Error: Please enter the numbers 1 to 2 as your input. Anything else is an invalid option. \n"
+			fi
+		done
+			
+			if [ "$selectionAnswer" = "2" ]; then  
 				genkernel --clean --install kernel
 				printf "\n"
 				while true; do
@@ -386,30 +441,23 @@ elif [ "$compileMethod" = "3" ]; then
 						genkernel --install --makeopts=-j"$coreCount" --clean --no-mrproper --menuconfig kernel
 						if [ $? -eq 0 ]; then
 							askInitramfs
-							ifSuccessBreak
+							break
 						fi
 					elif [ "$configTypeAnswer" = "2" ]; then  
 						genkernel --install --makeopts=-j"$coreCount" --clean --no-mrproper --gconfig kernel
 						if [ $? -eq 0 ]; then
 							askInitramfs
-							ifSuccessBreak
+							break
 						fi
 					elif [ "$configTypeAnswer" = "3" ]; then  
 						genkernel --install --makeopts=-j"$coreCount" --clean --no-mrproper kernel
 						if [ $? -eq 0 ]; then
 							askInitramfs
-							ifSuccessBreak
+							break
 						fi
-					else
-						printf "Error: Please enter the numbers 1 to 3 as your input. Anything else is an invalid option. \n"
 					fi
 				done
-				
-				ifSuccessBreak
-			else
-				printf "Error: Please enter the numbers 1 to 2 as your input. Anything else is an invalid option. \n"
 			fi
-		done
 	fi
 	
 	printf "\n"
@@ -438,14 +486,20 @@ elif [ "$compileMethod" = "3" ]; then
 	done
 elif [ "$compileMethod" = "4" ]; then
 	printf "Skipping building the kernel... \n"
-else
-	printf "Please choose an option between 1 to 4. Anything else is an invalid option.\n"
-	exit 1
 fi
 
-printf "\n"
-printf "Would you like to update your grub.cfg? Y/N \n"
-read -r updateGrub
+while true; do
+	printf "\n"
+	printf "Would you like to update your grub.cfg? Y/N \n"
+	read -r updateGrub
+	if [ "$updateGrub" = "Y" ] || [ "$updateGrub" = "y" ] || [ "$updateGrub" = "N" ] || [ "$updateGrub" = "n" ]; then
+		printf "\n"
+		break
+	else
+		printf "Error: Invalid selection, enter either Y or N \n"
+	fi
+done
+
 if [ "$updateGrub" = "Y" ] || [ "$updateGrub" = "y" ]; then		
 	isInstalled "sys-boot/grub:2"
 	isInstalled "sys-boot/os-prober"
