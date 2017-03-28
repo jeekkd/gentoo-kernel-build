@@ -457,11 +457,17 @@ elif [ "$compileMethod" = "3" ]; then
 						fi
 					fi
 				done
+				break
 			fi
 	fi
 	
 	printf "\n"
 	while true; do
+		if [ -z ${selectionAnswer} ]; then
+			printf "\n"
+			break
+		fi
+		
 		if [ "$configTypeAnswer" = "1" ]; then  
 			genkernel --install --makeopts=-j"$coreCount" --clean --no-mrproper --kernel-config=/usr/src/"$currentKernel"/.config --menuconfig kernel
 			if [ $? -eq 0 ]; then
