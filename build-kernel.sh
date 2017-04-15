@@ -338,7 +338,7 @@ if [ "$compileMethod" = "1" ]; then
 	cd /usr/src/"$currentKernel"/
 	correctDir=/usr/src/"$currentKernel"/
 	presentDir=$(pwd)
-	if [ $presentDir != $correctDir ]; then  
+	if [ "$presentDir" != "$correctDir" ]; then  
 		currentKernel=$(eselect kernel list | awk '/*/{print $3}')
 		if [ "$currentKernel" = "*" ]; then 
 			currentKernel=$(eselect kernel list | awk '/*/{print $2}')
@@ -353,18 +353,14 @@ if [ "$compileMethod" = "1" ]; then
 	if [ "$configTypeAnswer" = "1" ]; then  
 		printf "Launching make menuconfig... \n"
 		make menuconfig
-		ifSuccessBreak
 	elif [ "$configTypeAnswer" = "2" ]; then  
 		printf "Launching make gconfig... \n"
 		make gconfig
-		ifSuccessBreak
 	elif [ "$configTypeAnswer" = "3" ]; then  
 		printf "Launching make silentoldconfig... \n"
 		make silentoldconfig
-		ifSuccessBreak
 	elif [ "$configTypeAnswer" = "4" ]; then  
 		printf "Skipping launching a kernel configuration menu, going straight to compiling... \n"
-		ifSuccessBreak
 	fi	
 	printf "\n"
 	printf "Cleaning directory... \n"
@@ -393,8 +389,6 @@ elif [ "$compileMethod" = "3" ]; then
 	printf "\n"
 	printf "Starting to build the kernel... \n"
 	printf "\n"
-	printf "Notice: This configuration for genkernel only makes and installs the kernel. For additional options you may need to manually configure the parameters for your usage case. There is an optional prompt at the end of the compiling to create an initramfs.\n"
-	read -p "Press any key to continue..."
 	while true; do
 		printf "\n"
 		printf "Press 1 to use menuconfig. \n"
@@ -414,9 +408,8 @@ elif [ "$compileMethod" = "3" ]; then
 	printf "How many CPU cores would you like to compile with? You have: $coreCount available \n"
 	read -r coreCount
 	coreCount=$((coreCount + 1))
-	
 	printf "\n"
-	if [ ! -f /usr/src/"$currentKernel"/.config ]; then
+	if [ ! -f /usr/src/$currentKernel/.config ]; then
 		while true; do
 			printf "\n"
 			printf "Error: .config at /usr/src/$currentKernel doesn't exist \n"
@@ -463,7 +456,7 @@ elif [ "$compileMethod" = "3" ]; then
 	
 	printf "\n"
 	while true; do
-		if [ -z ${selectionAnswer} ]; then
+		if [ ! -z "$selectionAnswer" ]; then
 			printf "\n"
 			break
 		fi
@@ -517,6 +510,7 @@ if [ "$updateGrub" = "Y" ] || [ "$updateGrub" = "y" ]; then
 	fi
 	
 	if [ ! -d /boot/grub/ ]; then
+		printf "\n"
 		printf "Error: /boot/grub/ directory does not exist. Install grub onto main disk? Y/N \n"
 		read -r installGrub
 		if [ "$installGrub" = "Y" ] || [ $installGrub = "y" ]; then
