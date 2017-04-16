@@ -197,7 +197,7 @@ done
 
 while true; do
 	printf "\n"
-	printf "Installing gentoolkit is necessary if hardware detection and/or genkernel kernel build options are used. Install? Y/N \n"
+	printf "Installing gentoolkit is necessary if hardware detection, genkernel kernel build or genkernel created initramfs, options are used. Install? Y/N \n"
 	read -r gentoolkitAnswer
 	if [ "$gentoolkitAnswer" = "Y" ] || [ "$gentoolkitAnswer" = "y" ]; then
 		confUpdate "app-portage/gentoolkit"
@@ -373,9 +373,6 @@ if [ "$compileMethod" = "1" ]; then
 		printf "Installing modules and the kernel... \n"
 		make modules_install
 		make install
-		if [ $? -eq 0 ]; then
-			askInitramfs
-		fi
 	fi
 elif [ "$compileMethod" = "2" ]; then
 	printf "Starting to build the kernel... \n"
@@ -419,6 +416,7 @@ elif [ "$compileMethod" = "3" ]; then
 			read -r selectionAnswer
 			if [ "$selectionAnswer" -gt "0" ] && [ "$selectionAnswer" -lt "3" ]; then
 				printf "Continuing.. \n"
+				selectionAnswerSet=Y
 				break
 			else
 				printf "\n"
@@ -432,53 +430,34 @@ elif [ "$compileMethod" = "3" ]; then
 				while true; do
 					if [ "$configTypeAnswer" = "1" ]; then  
 						genkernel --install --makeopts=-j"$coreCount" --clean --no-mrproper --menuconfig kernel
-						if [ $? -eq 0 ]; then
-							askInitramfs
-							break
-						fi
+						ifSuccessBreak
 					elif [ "$configTypeAnswer" = "2" ]; then  
 						genkernel --install --makeopts=-j"$coreCount" --clean --no-mrproper --gconfig kernel
-						if [ $? -eq 0 ]; then
-							askInitramfs
-							break
-						fi
+						ifSuccessBreak
 					elif [ "$configTypeAnswer" = "3" ]; then  
 						genkernel --install --makeopts=-j"$coreCount" --clean --no-mrproper kernel
-						if [ $? -eq 0 ]; then
-							askInitramfs
-							break
-						fi
+						ifSuccessBreak
 					fi
 				done
-				break
 			fi
 	fi
 	
 	printf "\n"
 	while true; do
-		if [ ! -z "$selectionAnswer" ]; then
+		if [ "$selectionAnswerSet" = "Y" ]; then
 			printf "\n"
 			break
 		fi
 		
 		if [ "$configTypeAnswer" = "1" ]; then  
 			genkernel --install --makeopts=-j"$coreCount" --clean --no-mrproper --kernel-config=/usr/src/"$currentKernel"/.config --menuconfig kernel
-			if [ $? -eq 0 ]; then
-				askInitramfs
-				ifSuccessBreak
-			fi
+			ifSuccessBreak
 		elif [ "$configTypeAnswer" = "2" ]; then  
 			genkernel --install --makeopts=-j"$coreCount" --clean --no-mrproper --kernel-config=/usr/src/"$currentKernel"/.config --gconfig kernel
-			if [ $? -eq 0 ]; then
-				askInitramfs
-				ifSuccessBreak
-			fi
+			ifSuccessBreak
 		elif [ "$configTypeAnswer" = "3" ]; then  
 			genkernel --install --makeopts=-j"$coreCount" --clean --no-mrproper --kernel-config=/usr/src/"$currentKernel"/.config kernel
-			if [ $? -eq 0 ]; then
-				askInitramfs
-				ifSuccessBreak
-			fi
+			ifSuccessBreak
 		else
 			printf "Error: Please enter the numbers 1 to 3 as your input. Anything else is an invalid option. \n"
 		fi
@@ -486,6 +465,8 @@ elif [ "$compileMethod" = "3" ]; then
 elif [ "$compileMethod" = "4" ]; then
 	printf "Skipping building the kernel... \n"
 fi
+
+askInitramfs
 
 while true; do
 	printf "\n"
