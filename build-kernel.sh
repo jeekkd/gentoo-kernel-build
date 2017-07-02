@@ -12,7 +12,7 @@
 askInitramfs() {
 	while true; do
 		printf "\n"
-		printf "Do you also need a initramfs? Y/N \n"
+		printf "Do you also need a initramfs? Enter [y/n] \n"
 		read -r initramfsAnswer
 		if [ "$initramfsAnswer" = "Y" ] || [ "$initramfsAnswer" = "y" ]; then
 			while true; do
@@ -58,7 +58,7 @@ askInitramfs() {
 			printf "Skipping adding an initramfs.. \n"
 			break
 		else
-			printf "Error: Invalid selection, enter either Y or N \n"
+			printf "Error: Invalid selection, Enter [y/n] \n"
 		fi
 	done
 }
@@ -106,9 +106,21 @@ ifSuccessBreak() {
 	fi
 }
 
+mainBanner() {
+	printf "\n"
+	printf "============================================================= \n"
+	printf "Gentoo kernel build \n"
+	printf "https://github.com/jeekkd/gentoo-kernel-build \n"
+	printf "============================================================= \n"
+	printf "\n"
+	printf "If you run into any problems, please open an issue so it can fixed. Thanks! \n"
+}
+
+mainBanner
+
 while true; do
 	printf "\n"
-	printf "Select the kernel you'd like to install/update: \n"
+	printf "Select the kernel you'd like to install/update by typing its number: \n"
 	printf "\n"
 	printf "1. gentoo-sources \n"
 	printf "2. hardened-sources \n"
@@ -125,9 +137,15 @@ while true; do
 	read -r kernelSelection
 	if [ "$kernelSelection" -ge "1" ] && [ "$kernelSelection" -le "10" ]; then
 		printf "\n"
-		emerge --sync
+		printf "Update Portage tree? Enter [y/n] \n"
+		read -r portageUpdate
+		if [ "$portageUpdate" = "Y" ] || [ "$portageUpdate" = "y" ]; then
+			printf "\n"
+			printf "* Syncing.. Be patient this couple take a couple minutes \n"
+			emerge --sync -q
+		fi
 		printf "\n"
-		printf "Would you like to unmask testing version of the selected kernel? Y/N \n"
+		printf "Would you like to unmask testing version of the selected kernel? Enter [y/n] \n"
 		read -r unmaskAnswer
 	fi
 
@@ -208,7 +226,7 @@ while true; do
 		break
 	else
 		printf "\n"
-		printf "Error: Invalid selection, enter either Y or N \n"
+		printf "Error: Invalid selection, Enter [y/n] \n"
 	fi
 done
 
@@ -238,6 +256,11 @@ while true; do
 		ifSuccessBreak
 	elif [ "$configAnswer" = "2" ]; then
 		modprobe configs
+		if [ $? -gt 0 ]; then
+			printf "Error: failed to probe configs kernel module, must not be enabled - try another method. \n"
+		else
+			break
+		fi
 		zcat /proc/config.gz > /usr/src/"$currentKernel"/.config
 		if [ $? -gt 0 ]; then
 			printf "Error: failed to copy /proc/config.gz to /usr/src/$currentKernel/.config - try another method. \n"
@@ -294,7 +317,7 @@ while true; do
 		break
 	else
 		printf "\n"
-		printf "Error: Invalid selection, enter either Y or N \n"
+		printf "Error: Invalid selection, Enter [y/n] \n"
 	fi
 done
 
@@ -416,6 +439,7 @@ elif [ "$compileMethod" = "3" ]; then
 			read -r selectionAnswer
 			if [ "$selectionAnswer" -gt "0" ] && [ "$selectionAnswer" -lt "3" ]; then
 				printf "Continuing.. \n"
+				printf "\n"
 				selectionAnswerSet=Y
 				break
 			else
@@ -476,7 +500,7 @@ while true; do
 		printf "\n"
 		break
 	else
-		printf "Error: Invalid selection, enter either Y or N \n"
+		printf "Error: Invalid selection, Enter [y/n] \n"
 	fi
 done
 
