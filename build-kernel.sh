@@ -106,6 +106,47 @@ ifSuccessBreak() {
 	fi
 }
 
+# Credits to original author for this function as described below:	
+# From: davejamesmiller/ask.sh
+# What: Bash: General-purpose Yes/No prompt function ("ask") 
+# URL: https://gist.github.com/davejamesmiller/1965569
+ask() {
+	while true; do
+        if [ "${2:-}" = "Y" ]; then
+            prompt="Y/n"
+            default=Y
+        elif [ "${2:-}" = "N" ]; then
+            prompt="y/N"
+            default=N
+        else
+            prompt="y/n"
+            default=
+        fi
+        # Ask the question - use /dev/tty in case stdin is redirected from somewhere else
+        read -p "$1 [$prompt] " REPLY </dev/tty
+        # Default?
+        if [ -z "$REPLY" ]; then
+            REPLY=$default
+        fi
+
+        # Check if the reply is valid
+        case "$REPLY" in
+            Y*|y*) return 0 ;;
+            N*|n*) return 1 ;;
+        esac
+    done
+}
+
+# control_c()
+# Trap Ctrl-C for a quick and clean exit when necessary
+control_c() {
+	echo "Control-c pressed - exiting NOW"
+	exit 1
+}
+
+# Trap any ctrl+c and call control_c function provided through functions.sh
+trap control_c SIGINT
+
 mainBanner() {
 	printf "\n"
 	printf "============================================================= \n"
@@ -132,10 +173,11 @@ while true; do
 	printf "8. aufs-sources \n"
 	printf "9. rt-sources \n"
 	printf "10. tuxonice-sources \n"
-	printf "11. Skip this selection \n"
+	printf "11. grsecurity-sources \n"
+	printf "12. Skip this selection \n"
 	printf "\n"
 	read -r kernelSelection
-	if [ "$kernelSelection" -ge "1" ] && [ "$kernelSelection" -le "10" ]; then
+	if [ "$kernelSelection" -ge "1" ] && [ "$kernelSelection" -le "11" ]; then
 		printf "\n"
 		printf "Update Portage tree? Enter [y/n] \n"
 		read -r portageUpdate
@@ -154,9 +196,14 @@ while true; do
 		confUpdate "sys-kernel/gentoo-sources"
 		ifSuccessBreak
 	elif [ "$kernelSelection" = "2" ]; then
-		unmaskKernel "sys-kernel/hardened-sources"
-		confUpdate "sys-kernel/hardened-sources"
-		ifSuccessBreak
+		if ask "Warning: These sources are masked due to upstream is no longer providing public patches. Continue? Enter"; then
+			echo "sys-kernel/hardened-sources" >> /etc/portage/package.unmask
+			unmaskKernel "sys-kernel/hardened-sources"
+			confUpdate "sys-kernel/hardened-sources"
+			ifSuccessBreak
+		else
+			printf "No was selected, skipping. \n"
+		fi
 	elif [ "$kernelSelection" = "3" ]; then
 		unmaskKernel "sys-kernel/ck-sources"
 		confUpdate "sys-kernel/ck-sources"
@@ -190,10 +237,20 @@ while true; do
 		confUpdate "sys-kernel/tuxonice-sources"
 		ifSuccessBreak
 	elif [ "$kernelSelection" = "11" ]; then
+		if ask "Warning: grsecurity-sources comes from an unofficial overlay. Continue? Enter"; then
+			confUpdate "app-portage/layman"
+			layman -S && layman -a ago
+			unmaskKernel "sys-kernel/grsecurity-sources"
+			confUpdate "sys-kernel/grsecurity-sources"
+			ifSuccessBreak
+		else
+			printf "No was selected, skipping. \n"
+		fi
+	elif [ "$kernelSelection" = "12" ]; then
 		printf "Skipping kernel installation/update... \n"
 		ifSuccessBreak
 	else
-		printf "Error: please choose an option between 1 to 11. \n"
+		printf "Error: please choose an option between 1 to 12. \n"
 	fi
 done
 
