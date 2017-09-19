@@ -315,10 +315,9 @@ while true; do
 		modprobe configs
 		if [ $? -gt 0 ]; then
 			printf "Error: failed to probe configs kernel module, must not be enabled - try another method. \n"
-		else
-			break
 		fi
-		zcat /proc/config.gz > /usr/src/"$currentKernel"/.config
+		zcat /proc/config.gz > /tmp/current-kernel.config
+		mv /tmp/current-kernel.config /usr/src/"$currentKernel"/.config
 		if [ $? -gt 0 ]; then
 			printf "Error: failed to copy /proc/config.gz to /usr/src/$currentKernel/.config - try another method. \n"
 		else
