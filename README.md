@@ -23,17 +23,17 @@ Features
 Pictures
 ===
 
-![daulton.ca](https://daulton.ca/lib/exe/fetch.php?cache=&media=bash_script_pictures:build-kernel-01.png)
+![daulton.ca](https://daulton.ca/images/bash-script-screenshots/build-kernel-01.png)
 
 > **Note:** 
 > Kernel compilation output cut, of course.
 
-![daulton.ca](https://daulton.ca/lib/exe/fetch.php?cache=&media=bash_script_pictures:build-kernel-02.png)
+![daulton.ca](https://daulton.ca/images/bash-script-screenshots/build-kernel-02.png)
 
 > **Note:** 
 > Genkernel initramfs output cut.
 
-![daulton.ca](https://daulton.ca/lib/exe/fetch.php?cache=&media=bash_script_pictures:build-kernel-03.png)
+![daulton.ca](https://daulton.ca/images/bash-script-screenshots/build-kernel-03.png)
 
 
 How to use
